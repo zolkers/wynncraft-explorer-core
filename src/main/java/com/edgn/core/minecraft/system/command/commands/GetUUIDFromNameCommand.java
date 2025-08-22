@@ -3,7 +3,7 @@ package com.edgn.core.minecraft.system.command.commands;
 import com.edgn.core.minecraft.system.command.ICommand;
 import com.edgn.core.minecraft.system.command.builder.Arguments;
 import com.edgn.core.minecraft.system.command.builder.CommandBuilder;
-import com.edgn.wynncraft.api.ApiUtils;
+import com.edgn.core.wynncraft.api.ApiUtils;
 
 public class GetUUIDFromNameCommand implements ICommand {
 

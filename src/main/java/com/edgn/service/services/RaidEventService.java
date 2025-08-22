@@ -8,9 +8,9 @@ import com.edgn.event.listeners.TitleListener;
 import com.edgn.service.AbstractService;
 import com.edgn.event.wynncraft.RaidListener;
 import com.edgn.exceptions.RaidException;
-import com.edgn.wynncraft.raid.RaidConstants;
-import com.edgn.wynncraft.raid.RaidEnum;
-import com.edgn.wynncraft.raid.IRaid;
+import com.edgn.core.wynncraft.raid.RaidConstants;
+import com.edgn.core.wynncraft.raid.RaidEnum;
+import com.edgn.core.wynncraft.raid.IRaid;
 import com.edgn.core.minecraft.text.TextStyle;
 
 import java.util.*;

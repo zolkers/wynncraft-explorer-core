@@ -2,7 +2,7 @@ package com.edgn.event.wynncraft;
 
 import com.edgn.event.Event;
 import com.edgn.event.Listener;
-import com.edgn.wynncraft.raid.RaidEnum;
+import com.edgn.core.wynncraft.raid.RaidEnum;
 
 import java.util.ArrayList;
 
