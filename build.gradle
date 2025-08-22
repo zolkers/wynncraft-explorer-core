@@ -66,18 +66,13 @@ jar {
 publishing {
 	publications {
 		create("mavenJava", MavenPublication) {
-			groupId = project.group
-			artifactId = project.archives_base_name // défini dans gradle.properties
-			version = project.version
+			groupId = project.maven_group           // com.edgn
+			artifactId = project.archives_base_name // wynncraft-explorer
+			version = project.mod_version           // 1.0.0
 
 			// Publier les artefacts remappés (Fabric Loom)
-			artifact(tasks.remapJar) {
-				builtBy tasks.remapJar
-				classifier = null // JAR principal
-			}
-			artifact(tasks.remapSourcesJar) {
-				builtBy tasks.remapSourcesJar
-			}
+			artifact(tasks.remapJar) { classifier = null; builtBy tasks.remapJar }
+			artifact(tasks.remapSourcesJar) { builtBy tasks.remapSourcesJar }
 
 			pom {
 				name = project.archives_base_name
@@ -90,9 +85,13 @@ publishing {
 			name = "GitHubPackages"
 			url = uri("https://maven.pkg.github.com/zolkers/wynncraft-explorer-core")
 			credentials {
-				username = System.getenv("GITHUB_ACTOR") ?: (project.findProperty("gpr.user") ?: "")
-				password = System.getenv("GITHUB_TOKEN") ?: (project.findProperty("gpr.token") ?: "")
+				username = System.getenv("GITHUB_ACTOR") ?: (findProperty("gpr.user") ?: "")
+				password = System.getenv("GITHUB_TOKEN") ?: (findProperty("gpr.token") ?: "")
 			}
 		}
 	}
+}
+
+tasks.named("publish").configure {
+	dependsOn(tasks.remapJar, tasks.remapSourcesJar)
 }

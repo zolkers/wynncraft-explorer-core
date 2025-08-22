@@ -2,6 +2,11 @@ name: Publish core to GitHub Packages
 on:
   push:
     tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -12,7 +17,8 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
-      - run: ./gradlew --no-daemon build remapJar remapSourcesJar publish
+      - name: Build & Publish
+        run: ./gradlew --no-daemon clean build remapJar remapSourcesJar publish
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
