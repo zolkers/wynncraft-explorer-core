@@ -1,0 +1,38 @@
+{
+	"required": true,
+	"package": "com.edgn.mixin.mixins",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"client": [
+		"accessor.ClientConnectionAccessor",
+		"events.ClientConnectionMixin",
+		"events.DataCrowdSourcingFeatureMixin",
+		"events.DefaultedListMixin",
+		"events.HadesServiceMixin",
+		"events.LivingEntityMixin",
+		"events.ScoreboardMixin",
+		"events.TelemetryFeatureMixin",
+		"accessor.AbstractSoundInstanceAccessor",
+		"accessor.ClientWorldAccessor",
+		"accessor.KeyBindingAccessor",
+		"accessor.ParticleManagerAccessor",
+		"accessor.ScreenAccessor",
+		"events.CameraMixin",
+		"events.ChatHudMixin",
+		"events.ClientPlayerEntityMixin",
+		"events.ClientPlayNetworkHandlerMixin",
+		"events.ClientWorldMixin",
+		"events.IngameHudMixin",
+		"events.KeyBindingMixin",
+		"events.KeyboardMixin",
+		"events.MinecraftClientMixin",
+		"events.MouseMixin",
+		"events.NetworkHandlerMixin",
+		"events.SoundSystemMixin"
+	]
+}
