@@ -1,6 +1,7 @@
 package com.edgn.core.minecraft.ui.screens;
 
 import com.edgn.Main;
+import com.edgn.api.ui.FeatureEntry;
 import com.edgn.uifw.templates.HtmlTemplate;
 import com.edgn.uifw.css.StyleKey;
 import com.edgn.uifw.css.rules.AlignItems;
@@ -84,6 +85,20 @@ public final class MainScreen extends HtmlTemplate {
                     .addClass(StyleKey.ACCENT, StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.HOVER_SCALE, StyleKey.BG_OPACITY_13)
                     .setShowVersion(false)
                     .onClick(() -> navigateTo(new TestScreen(this))));
+        }
+
+        for (FeatureEntry e : Main.getCoreApi().ui().all()) {
+            FeatureItem item = new FeatureItem(uiSystem, 0, 0, 0, 70)
+                    .withTitle(new TextComponent(e.title != null ? e.title : e.id, textRenderer).color(0xFFFFFFFF))
+                    .withDescription(new TextComponent(e.description != null ? e.description : "", textRenderer).color(0xFFAAAAAA))
+                    .withVersion(new TextComponent(e.version != null ? e.version : "", textRenderer).color(0xFF888888))
+                    .setIcon(e.icon != null ? e.icon : Identifier.of(Main.MOD_ID, "icon.png"))
+                    .addClass(StyleKey.SECONDARY, StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.HOVER_SCALE, StyleKey.BG_OPACITY_13);
+
+            if (e.openScreen != null) {
+                item.onClick(() -> navigateTo(e.openScreen.get()));
+            }
+            list.add(item);
         }
     }
 
