@@ -63,20 +63,36 @@ jar {
 	}
 }
 
-// configure the maven publication
 publishing {
 	publications {
 		create("mavenJava", MavenPublication) {
-			artifactId = project.archives_base_name
-			from components.java
+			groupId = project.group
+			artifactId = project.archives_base_name // défini dans gradle.properties
+			version = project.version
+
+			// Publier les artefacts remappés (Fabric Loom)
+			artifact(tasks.remapJar) {
+				builtBy tasks.remapJar
+				classifier = null // JAR principal
+			}
+			artifact(tasks.remapSourcesJar) {
+				builtBy tasks.remapSourcesJar
+			}
+
+			pom {
+				name = project.archives_base_name
+				description = "Core + API for EDGN extensions"
+			}
 		}
 	}
-
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
 	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
+		maven {
+			name = "GitHubPackages"
+			url = uri("https://maven.pkg.github.com/zolkers/wynncraft-explorer-core")
+			credentials {
+				username = System.getenv("GITHUB_ACTOR") ?: (project.findProperty("gpr.user") ?: "")
+				password = System.getenv("GITHUB_TOKEN") ?: (project.findProperty("gpr.token") ?: "")
+			}
+		}
 	}
 }
