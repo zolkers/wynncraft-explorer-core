@@ -1,6 +1,6 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import com.edgn.core.module.settings.BooleanSetting;
 import net.minecraft.client.gui.DrawContext;
@@ -19,7 +19,7 @@ public class BooleanSettingComponent extends SettingComponent {
         boolean hovered = isHovered();
 
         int bgColor = hovered ? (screen.getAccentColor() & 0x40FFFFFF) : (screen.getBgSecondary());
-        Render2D.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
+        DrawingUtils.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
 
         int switchWidth = 40;
         int switchHeight = 20;
@@ -27,20 +27,20 @@ public class BooleanSettingComponent extends SettingComponent {
         int switchY = getY() + (height - switchHeight) / 2;
 
         int trackColor = value ? screen.getAccentColor() : (hovered ? 0xFF555555 : 0xFF444444);
-        Render2D.drawRoundedRect(context, switchX, switchY, switchWidth, switchHeight, switchHeight / 2, trackColor);
+        DrawingUtils.drawRoundedRect(context, switchX, switchY, switchWidth, switchHeight, switchHeight / 2, trackColor);
 
         int knobSize = switchHeight - 4;
         int knobX = value ? (switchX + switchWidth - knobSize - 2) : (switchX + 2);
         int knobY = switchY + 2;
         int knobColor = hovered ? 0xFFFFFFFF : 0xFFDDDDDD;
 
-        Render2D.drawShadow(context, knobX, knobY, knobSize, knobSize, 1, 1, 0x40000000);
-        Render2D.drawRoundedRect(context, knobX, knobY, knobSize, knobSize, knobSize / 2, knobColor);
+        DrawingUtils.drawShadow(context, knobX, knobY, knobSize, knobSize, 1, 1, 0x40000000);
+        DrawingUtils.drawRoundedRect(context, knobX, knobY, knobSize, knobSize, knobSize / 2, knobColor);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && Render2D.isPointInRect(mouseX, mouseY, getX(), getY(), width, height)) {
+        if (button == 0 && DrawingUtils.isPointInRect(mouseX, mouseY, getX(), getY(), width, height)) {
             booleanSetting.setValue(!booleanSetting.getValue());
             return true;
         }

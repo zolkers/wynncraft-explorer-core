@@ -1,6 +1,6 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import com.edgn.core.module.settings.ColorSetting;
 import net.minecraft.client.MinecraftClient;
@@ -19,7 +19,7 @@ public class ColorSettingComponent extends SettingComponent {
         boolean hovered = isHovered();
 
         int bgColor = hovered ? (screen.getAccentColor() & 0x40FFFFFF) : screen.getBgSecondary();
-        Render2D.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
+        DrawingUtils.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
 
         int colorPreviewSize = height - 8;
         int colorX = getX() + width - colorPreviewSize - 10;
@@ -27,11 +27,11 @@ public class ColorSettingComponent extends SettingComponent {
 
         drawCheckerboard(context, colorX, colorY, colorPreviewSize, colorPreviewSize);
 
-        Render2D.drawRoundedRect(context, colorX, colorY, colorPreviewSize, colorPreviewSize, 6, colorSetting.getValue());
+        DrawingUtils.drawRoundedRect(context, colorX, colorY, colorPreviewSize, colorPreviewSize, 6, colorSetting.getValue());
 
         int borderColor = hovered ? screen.getAccentColor() : screen.getTextSecondary();
         int borderThickness = hovered ? 2 : 1;
-        Render2D.drawRoundedRectBorder(context, colorX, colorY, colorPreviewSize, colorPreviewSize, 6, borderColor, borderThickness);
+        DrawingUtils.drawRoundedRectBorder(context, colorX, colorY, colorPreviewSize, colorPreviewSize, 6, borderColor, borderThickness);
 
         if (hovered) {
             String paletteIcon = "🎨";
@@ -55,7 +55,7 @@ public class ColorSettingComponent extends SettingComponent {
         int colorPreviewSize = height - 8;
         int colorX = getX() + width - colorPreviewSize - 10;
 
-        if (Render2D.isPointInRect(mouseX, mouseY, colorX, getY() + 4, colorPreviewSize, colorPreviewSize) && button == 0) {
+        if (DrawingUtils.isPointInRect(mouseX, mouseY, colorX, getY() + 4, colorPreviewSize, colorPreviewSize) && button == 0) {
             MinecraftClient.getInstance().setScreen(
                     new ColorPickerScreen(
                             screen,

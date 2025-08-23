@@ -1,6 +1,6 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import com.edgn.core.module.settings.EnumSetting;
 import net.minecraft.client.MinecraftClient;
@@ -19,7 +19,7 @@ public class EnumSettingComponent<T extends Enum<T>> extends SettingComponent {
         boolean hovered = isHovered();
 
         int bgColor = hovered ? (screen.getAccentColor() & 0x40FFFFFF) : screen.getBgSecondary();
-        Render2D.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
+        DrawingUtils.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
 
         int selectorWidth = 120;
         int selectorHeight = height - 8;
@@ -27,7 +27,7 @@ public class EnumSettingComponent<T extends Enum<T>> extends SettingComponent {
         int selectorY = getY() + 4;
 
         int selectorBgColor = hovered ? screen.getAccentHoverColor() : screen.getAccentColor();
-        Render2D.drawRoundedRect(context, selectorX, selectorY, selectorWidth, selectorHeight, 6, selectorBgColor);
+        DrawingUtils.drawRoundedRect(context, selectorX, selectorY, selectorWidth, selectorHeight, 6, selectorBgColor);
 
         String text = enumSetting.getValue().name();
         String formattedText = text.substring(0, 1).toUpperCase() + text.substring(1).toLowerCase().replace("_", " ");
@@ -54,7 +54,7 @@ public class EnumSettingComponent<T extends Enum<T>> extends SettingComponent {
         int selectorWidth = 120;
         int selectorX = getX() + width - selectorWidth - 10;
 
-        if (Render2D.isPointInRect(mouseX, mouseY, selectorX, getY(), selectorWidth, height)) {
+        if (DrawingUtils.isPointInRect(mouseX, mouseY, selectorX, getY(), selectorWidth, height)) {
             if (button == 0) {
                 this.enumSetting.cycle();
                 return true;

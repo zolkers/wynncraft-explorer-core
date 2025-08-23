@@ -1,6 +1,6 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import com.edgn.core.module.settings.StringSetting;
 import net.minecraft.client.MinecraftClient;
@@ -33,7 +33,7 @@ public class StringSettingComponent extends SettingComponent {
 
         int bgColor = focused ? (screen.getAccentColor() & 0x60FFFFFF) :
                 (hovered ? (screen.getAccentColor() & 0x40FFFFFF) : screen.getBgSecondary());
-        Render2D.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
+        DrawingUtils.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
 
         int inputWidth = 200;
         int inputHeight = height - 8;
@@ -45,10 +45,10 @@ public class StringSettingComponent extends SettingComponent {
         int borderThickness = focused ? 2 : 1;
 
         if (focused) {
-            Render2D.drawShadow(context, inputX, inputY, inputWidth, inputHeight, 1, 1, 0x60000000);
+            DrawingUtils.drawShadow(context, inputX, inputY, inputWidth, inputHeight, 1, 1, 0x60000000);
         }
 
-        Render2D.drawPanel(context, inputX, inputY, inputWidth, inputHeight, 6, inputBgColor, borderColor, borderThickness);
+        DrawingUtils.drawPanel(context, inputX, inputY, inputWidth, inputHeight, 6, inputBgColor, borderColor, borderThickness);
 
         String textIcon = "✏️";
         context.drawText(MinecraftClient.getInstance().textRenderer, textIcon,
@@ -64,7 +64,7 @@ public class StringSettingComponent extends SettingComponent {
         int innerX = inputX + padding;
         int innerWidth = inputWidth - padding - 4;
 
-        Render2D.enableClipping(context, innerX, inputY, innerWidth, inputHeight);
+        DrawingUtils.enableClipping(context, innerX, inputY, innerWidth, inputHeight);
 
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
         int textWidth = textRenderer.getWidth(textToRender);
@@ -83,7 +83,7 @@ public class StringSettingComponent extends SettingComponent {
             context.drawTextWithShadow(textRenderer, textToRender, textX, textY, screen.getTextPrimary());
         }
 
-        Render2D.disableClipping(context);
+        DrawingUtils.disableClipping(context);
 
         if (focused && !currentText.isEmpty()) {
             String lengthText = currentText.length() + "/" + stringSetting.getMaxLength();
@@ -91,7 +91,7 @@ public class StringSettingComponent extends SettingComponent {
             int lengthX = inputX + inputWidth - lengthWidth - 6;
             int lengthY = inputY - 12;
 
-            Render2D.drawRoundedRect(context, lengthX - 2, lengthY - 1, lengthWidth + 4, 10, 3, 0xCC000000);
+            DrawingUtils.drawRoundedRect(context, lengthX - 2, lengthY - 1, lengthWidth + 4, 10, 3, 0xCC000000);
             context.drawText(textRenderer, lengthText, lengthX, lengthY, screen.getTextMuted(), false);
         }
 
@@ -111,7 +111,7 @@ public class StringSettingComponent extends SettingComponent {
         int inputWidth = 200;
         int inputX = getX() + width - inputWidth - 10;
 
-        if (button == 0 && Render2D.isPointInRect(mouseX, mouseY, inputX, getY() + 4, inputWidth, height - 8)) {
+        if (button == 0 && DrawingUtils.isPointInRect(mouseX, mouseY, inputX, getY() + 4, inputWidth, height - 8)) {
             this.setFocused(true);
             return true;
         }

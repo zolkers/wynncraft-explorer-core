@@ -1,7 +1,7 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
-import com.edgn.uifw.templates.BaseScreen;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
+import com.edgn.core.minecraft.ui.screens.BaseScreen;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import com.edgn.core.module.settings.ListSetting;
 import net.minecraft.client.gui.DrawContext;
@@ -149,8 +149,8 @@ public class ListEditScreen<T> extends BaseScreen {
         int accentColor = parentScreen.getAccentColor();
         int textColor = parentScreen.getTextPrimary();
 
-        // Panel principal avec Render2D
-        Render2D.drawPanelWithShadow(context, panelX, panelY, panelWidth, panelHeight, 12, bgColor, accentColor, 2, 0x60000000);
+        // Panel principal avec DrawingUtils
+        DrawingUtils.drawPanelWithShadow(context, panelX, panelY, panelWidth, panelHeight, 12, bgColor, accentColor, 2, 0x60000000);
 
         // Titre
         context.drawText(textRenderer, this.title, panelX + 10, panelY + 10, textColor, false);
@@ -158,7 +158,7 @@ public class ListEditScreen<T> extends BaseScreen {
 
         // Bordure d'erreur pour le champ de saisie
         if (inputError) {
-            Render2D.drawRoundedRectBorder(context, newItemField.getX() - 2, newItemField.getY() - 2,
+            DrawingUtils.drawRoundedRectBorder(context, newItemField.getX() - 2, newItemField.getY() - 2,
                     newItemField.getWidth() + 4, newItemField.getHeight() + 4, 6, 0xFFFF5555, 2);
         }
 
@@ -169,7 +169,7 @@ public class ListEditScreen<T> extends BaseScreen {
         int listEndX = panelX + panelWidth - 5;
         int itemHeight = 22;
 
-        Render2D.enableClipping(context, panelX + 5, listStartY, listEndX - (panelX + 5), listHeight);
+        DrawingUtils.enableClipping(context, panelX + 5, listStartY, listEndX - (panelX + 5), listHeight);
 
         for (int i = 0; i < tempList.size(); i++) {
             T item = tempList.get(i);
@@ -178,24 +178,24 @@ public class ListEditScreen<T> extends BaseScreen {
 
             if (itemY >= listStartY - itemHeight && itemY < listEndY) {
                 // Effet de survol sur l'élément
-                if (Render2D.isPointInRect(mouseX, mouseY, panelX + 10, itemY, panelWidth - 50, itemHeight - 2)) {
-                    Render2D.drawRoundedRect(context, panelX + 6, itemY, listEndX - (panelX + 6) - 1, itemHeight - 2, 4, 0x44FFFFFF);
+                if (DrawingUtils.isPointInRect(mouseX, mouseY, panelX + 10, itemY, panelWidth - 50, itemHeight - 2)) {
+                    DrawingUtils.drawRoundedRect(context, panelX + 6, itemY, listEndX - (panelX + 6) - 1, itemHeight - 2, 4, 0x44FFFFFF);
                 }
 
                 // Rendu du texte avec défilement
                 renderScrollingText(context, itemText, i, panelX + 10, itemY + 7, panelWidth - 60, textColor);
 
-                // Bouton de suppression avec Render2D
+                // Bouton de suppression avec DrawingUtils
                 int deleteX = panelX + panelWidth - 30;
-                boolean deleteHovered = Render2D.isPointInRect(mouseX, mouseY, deleteX, itemY, 20, 20);
+                boolean deleteHovered = DrawingUtils.isPointInRect(mouseX, mouseY, deleteX, itemY, 20, 20);
                 int deleteColor = deleteHovered ? 0xFFFF5555 : 0xFFE74C3C;
 
-                Render2D.drawRoundedRect(context, deleteX, itemY + 1, 20, 18, 4, deleteColor);
+                DrawingUtils.drawRoundedRect(context, deleteX, itemY + 1, 20, 18, 4, deleteColor);
                 context.drawText(textRenderer, "×", deleteX + 7, itemY + 6, 0xFFFFFFFF, true);
             }
         }
 
-        Render2D.disableClipping(context);
+        DrawingUtils.disableClipping(context);
 
         renderScrollbar(context, listStartY, listHeight);
     }
@@ -235,13 +235,13 @@ public class ListEditScreen<T> extends BaseScreen {
         }
 
         // Activer le clipping pour la zone de texte
-        Render2D.enableClipping(context, x, y - 2, maxWidth, 12);
+        DrawingUtils.enableClipping(context, x, y - 2, maxWidth, 12);
 
         // Dessiner le texte avec l'offset de défilement
         context.drawText(textRenderer, text, x - scrollOffset, y, color, false);
 
         // Désactiver le clipping
-        Render2D.disableClipping(context);
+        DrawingUtils.disableClipping(context);
     }
 
     private void renderScrollbar(DrawContext context, int listY, int listHeight) {
@@ -250,14 +250,14 @@ public class ListEditScreen<T> extends BaseScreen {
         int scrollbarX = panelX + panelWidth - 10;
         int accentColor = parentScreen.getAccentColor();
 
-        // Track de la scrollbar avec Render2D
-        Render2D.drawRoundedRect(context, scrollbarX, listY, 5, listHeight, 3, 0x40FFFFFF);
+        // Track de la scrollbar avec DrawingUtils
+        DrawingUtils.drawRoundedRect(context, scrollbarX, listY, 5, listHeight, 3, 0x40FFFFFF);
 
         double handleHeight = Math.max(20, listHeight * ((double)listHeight / maxScroll));
         double handleY = listY + (scrollOffset / (maxScroll - listHeight)) * (listHeight - handleHeight);
 
-        // Handle de la scrollbar avec Render2D
-        Render2D.drawRoundedRect(context, scrollbarX, (int) handleY, 5, (int) handleHeight, 3, accentColor);
+        // Handle de la scrollbar avec DrawingUtils
+        DrawingUtils.drawRoundedRect(context, scrollbarX, (int) handleY, 5, (int) handleHeight, 3, accentColor);
     }
 
     private void calculateMaxScroll() {
@@ -284,13 +284,13 @@ public class ListEditScreen<T> extends BaseScreen {
         int listEndY = newItemField.getY() - 10;
         int itemHeight = 22;
 
-        if (Render2D.isPointInRect(mouseX, mouseY, panelX, listStartY, panelWidth, listEndY - listStartY)) {
+        if (DrawingUtils.isPointInRect(mouseX, mouseY, panelX, listStartY, panelWidth, listEndY - listStartY)) {
             int index = (int) ((mouseY - listStartY + scrollOffset) / itemHeight);
             if (index >= 0 && index < tempList.size()) {
                 int deleteX = panelX + panelWidth - 30;
                 int itemY = listStartY - (int) scrollOffset + (index * itemHeight);
 
-                if (Render2D.isPointInRect(mouseX, mouseY, deleteX, itemY, 20, 20)) {
+                if (DrawingUtils.isPointInRect(mouseX, mouseY, deleteX, itemY, 20, 20)) {
                     tempList.remove(index);
 
                     textStartTimes.remove(index);

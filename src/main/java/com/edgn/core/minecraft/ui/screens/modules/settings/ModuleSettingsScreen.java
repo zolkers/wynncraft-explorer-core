@@ -1,13 +1,13 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings;
 
 import com.edgn.Main;
-import com.edgn.uifw.utils.Render2D;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
+import com.edgn.core.minecraft.ui.screens.BaseScreen;
 import com.edgn.core.module.basic.AbstractModule;
 import com.edgn.core.module.basic.ISettingsModule;
 import com.edgn.core.module.basic.ModuleInfo;
 import com.edgn.core.module.settings.Setting;
 import com.edgn.core.module.settings.SettingsGroup;
-import com.edgn.uifw.templates.BaseScreen;
 import com.edgn.core.minecraft.ui.screens.modules.settings.components.SettingComponent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -179,7 +179,7 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
         }
 
         int clipStartY = headerHeight + 70;
-        Render2D.enableClipping(context, SIDEBAR_WIDTH, clipStartY, width - SIDEBAR_WIDTH, height - footerHeight - clipStartY);
+        DrawingUtils.enableClipping(context, SIDEBAR_WIDTH, clipStartY, width - SIDEBAR_WIDTH, height - footerHeight - clipStartY);
 
         for (SettingComponent component : settingComponents) {
             int rowY = component.getY() - (SETTING_HEIGHT - CONTROL_HEIGHT) / 2;
@@ -188,11 +188,11 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
             int settingX = SIDEBAR_WIDTH + 30;
             int contentWidth = width - SIDEBAR_WIDTH - 60;
 
-            boolean isRowHovered = Render2D.isPointInRect(mouseX, mouseY, settingX, rowY, contentWidth, SETTING_HEIGHT);
+            boolean isRowHovered = DrawingUtils.isPointInRect(mouseX, mouseY, settingX, rowY, contentWidth, SETTING_HEIGHT);
             int bgColor = isRowHovered ? getBgTertiary() : getBgSecondary();
 
-            // Utilisation de Render2D pour les lignes de paramètres
-            Render2D.drawPanel(context, settingX, rowY, contentWidth, SETTING_HEIGHT, 6, bgColor, getAccentColor(), 1);
+            // Utilisation de DrawingUtils pour les lignes de paramètres
+            DrawingUtils.drawPanel(context, settingX, rowY, contentWidth, SETTING_HEIGHT, 6, bgColor, getAccentColor(), 1);
 
             context.drawText(textRenderer, setting.getName(), settingX + 10, rowY + 12, getTextPrimary(), false);
             if (!setting.getDescription().isEmpty()) {
@@ -202,14 +202,14 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
             component.render(context, mouseX, mouseY, delta);
         }
 
-        Render2D.disableClipping(context);
+        DrawingUtils.disableClipping(context);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         for (SettingsGroupTab tab : groupTabs) {
             int sidebarX = (int) (-SIDEBAR_WIDTH * (1.0f - sidebarSlideAnimation));
-            if (Render2D.isPointInRect(mouseX, mouseY, sidebarX + 10, tab.y, SIDEBAR_WIDTH - 20, 35)) {
+            if (DrawingUtils.isPointInRect(mouseX, mouseY, sidebarX + 10, tab.y, SIDEBAR_WIDTH - 20, 35)) {
                 if (selectedGroup != tab.group) {
                     selectedGroup = tab.group;
                     scrollOffset = 0;
@@ -298,7 +298,7 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
     }
 
     protected void renderHeader(DrawContext context, int mouseX, int mouseY, float delta) {
-        Render2D.drawGradient(context, 0, 0, width, headerHeight, getAccentColor(), getAccentHoverColor());
+        DrawingUtils.drawGradient(context, 0, 0, width, headerHeight, getAccentColor(), getAccentHoverColor());
         renderHeaderDecorations(context, 0, width, headerHeight, 0.3f);
 
         String moduleIcon = isDarkMode ? "🌙" : "🍉";
@@ -313,10 +313,10 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
 
     private void renderContentBackground(DrawContext context) {
         if (isDarkMode) {
-            Render2D.drawGradient(context, 0, headerHeight, width, height - footerHeight - headerHeight, DARK_BG_PRIMARY, DARK_BG_SECONDARY);
+            DrawingUtils.drawGradient(context, 0, headerHeight, width, height - footerHeight - headerHeight, DARK_BG_PRIMARY, DARK_BG_SECONDARY);
             renderFloatingStars(context);
         } else {
-            Render2D.drawGradient(context, 0, headerHeight, width, height - footerHeight - headerHeight, WATERMELON_WHITE, WATERMELON_LIGHT_GREEN);
+            DrawingUtils.drawGradient(context, 0, headerHeight, width, height - footerHeight - headerHeight, WATERMELON_WHITE, WATERMELON_LIGHT_GREEN);
             renderFloatingSeeds(context);
         }
     }
@@ -357,8 +357,8 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
     private void renderSidebar(DrawContext context, int mouseX, int mouseY) {
         int sidebarX = (int) (-SIDEBAR_WIDTH * (1.0f - sidebarSlideAnimation));
 
-        // Utilisation de Render2D pour la sidebar
-        Render2D.drawGradient(context, sidebarX, headerHeight, SIDEBAR_WIDTH, height - footerHeight - headerHeight, getBgPrimary(), getBgSecondary());
+        // Utilisation de DrawingUtils pour la sidebar
+        DrawingUtils.drawGradient(context, sidebarX, headerHeight, SIDEBAR_WIDTH, height - footerHeight - headerHeight, getBgPrimary(), getBgSecondary());
         context.fill(sidebarX + SIDEBAR_WIDTH - 4, headerHeight, sidebarX + SIDEBAR_WIDTH, height - footerHeight, getAccentColor());
 
         renderModuleInfo(context, sidebarX);
@@ -399,16 +399,16 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
 
     private void renderModuleIcon(DrawContext context, int x, int y) {
         if (isDarkMode) {
-            Render2D.drawRoundedRect(context, x, y, 32, 32, 6, DARK_ACCENT);
-            Render2D.drawRoundedRect(context, x + 3, y + 3, 26, 26, 4, DARK_BG_TERTIARY);
-            Render2D.drawRoundedRect(context, x + 6, y + 6, 20, 20, 2, DARK_BG_SECONDARY);
+            DrawingUtils.drawRoundedRect(context, x, y, 32, 32, 6, DARK_ACCENT);
+            DrawingUtils.drawRoundedRect(context, x + 3, y + 3, 26, 26, 4, DARK_BG_TERTIARY);
+            DrawingUtils.drawRoundedRect(context, x + 6, y + 6, 20, 20, 2, DARK_BG_SECONDARY);
             context.fill(x + 12, y + 10, x + 14, y + 14, DARK_TEXT_PRIMARY);
             context.fill(x + 20, y + 12, x + 22, y + 16, DARK_TEXT_PRIMARY);
             context.fill(x + 16, y + 20, x + 18, y + 24, DARK_TEXT_PRIMARY);
         } else {
-            Render2D.drawRoundedRect(context, x, y, 32, 32, 6, WATERMELON_GREEN);
-            Render2D.drawRoundedRect(context, x + 3, y + 3, 26, 26, 4, WATERMELON_WHITE);
-            Render2D.drawRoundedRect(context, x + 6, y + 6, 20, 20, 2, WATERMELON_PINK);
+            DrawingUtils.drawRoundedRect(context, x, y, 32, 32, 6, WATERMELON_GREEN);
+            DrawingUtils.drawRoundedRect(context, x + 3, y + 3, 26, 26, 4, WATERMELON_WHITE);
+            DrawingUtils.drawRoundedRect(context, x + 6, y + 6, 20, 20, 2, WATERMELON_PINK);
             context.fill(x + 12, y + 10, x + 14, y + 14, WATERMELON_BLACK);
             context.fill(x + 20, y + 12, x + 22, y + 16, WATERMELON_BLACK);
             context.fill(x + 16, y + 20, x + 18, y + 24, WATERMELON_BLACK);
@@ -427,7 +427,7 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
         int y = headerHeight + 110;
         for (SettingsGroupTab tab : groupTabs) {
             boolean selected = tab.group == selectedGroup;
-            boolean hovered = Render2D.isPointInRect(mouseX, mouseY, sidebarX + 10, y, SIDEBAR_WIDTH - 20, 35);
+            boolean hovered = DrawingUtils.isPointInRect(mouseX, mouseY, sidebarX + 10, y, SIDEBAR_WIDTH - 20, 35);
             renderGroupTab(context, tab, sidebarX + 10, y, selected, hovered);
             tab.y = y;
             y += 40;
@@ -444,8 +444,8 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
             bgColor = isDarkMode ? 0x30FFFFFF : 0x20000000;
         }
 
-        // Utilisation de Render2D pour les onglets
-        Render2D.drawRoundedRect(context, x, y, 240, 35, 6, bgColor);
+        // Utilisation de DrawingUtils pour les onglets
+        DrawingUtils.drawRoundedRect(context, x, y, 240, 35, 6, bgColor);
 
         if (selected) {
             int indicatorColor = isDarkMode ? DARK_TEXT_PRIMARY : WATERMELON_WHITE;
@@ -468,14 +468,14 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
         int scrollbarY = headerHeight + 70;
         int scrollbarHeight = height - headerHeight - footerHeight - 70;
 
-        // Utilisation de Render2D pour la scrollbar
+        // Utilisation de DrawingUtils pour la scrollbar
         int trackColor = isDarkMode ? 0x40FFFFFF : 0x40000000;
-        Render2D.drawRoundedRect(context, scrollbarX, scrollbarY, 10, scrollbarHeight, 5, trackColor | getAccentColor());
+        DrawingUtils.drawRoundedRect(context, scrollbarX, scrollbarY, 10, scrollbarHeight, 5, trackColor | getAccentColor());
 
         double handleHeight = Math.max(20, scrollbarHeight * (double) (height - headerHeight - footerHeight - 70) / (maxScrollOffset + height - headerHeight - footerHeight - 70));
         double handleY = scrollbarY + (scrollOffset / maxScrollOffset) * (scrollbarHeight - handleHeight);
 
-        Render2D.drawRoundedRect(context, scrollbarX + 1, (int) handleY, 8, (int) handleHeight, 4, getAccentColor());
+        DrawingUtils.drawRoundedRect(context, scrollbarX + 1, (int) handleY, 8, (int) handleHeight, 4, getAccentColor());
 
         if (!isDarkMode) {
             context.fill(scrollbarX + 3, (int) handleY + 5, scrollbarX + 5, (int) handleY + 8, WATERMELON_BLACK);
@@ -485,7 +485,7 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
 
     @Override
     protected void renderFooter(DrawContext context, int mouseX, int mouseY, float delta) {
-        Render2D.drawGradient(context, 0, height - footerHeight, width, footerHeight, getAccentHoverColor(), getAccentColor());
+        DrawingUtils.drawGradient(context, 0, height - footerHeight, width, footerHeight, getAccentHoverColor(), getAccentColor());
         renderHeaderDecorations(context, height - footerHeight, width, footerHeight, 0.2f);
 
         String footerIcon = isDarkMode ? "🌙" : "🍉";
@@ -502,7 +502,7 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
     private void renderSettingTooltip(DrawContext context, int mouseX, int mouseY) {
         for (SettingComponent component : settingComponents) {
             int settingY = component.getY() - (SETTING_HEIGHT - CONTROL_HEIGHT) / 2;
-            if(Render2D.isPointInRect(mouseX, mouseY, SIDEBAR_WIDTH, settingY, width - SIDEBAR_WIDTH, SETTING_HEIGHT)) {
+            if(DrawingUtils.isPointInRect(mouseX, mouseY, SIDEBAR_WIDTH, settingY, width - SIDEBAR_WIDTH, SETTING_HEIGHT)) {
                 if(!component.getSetting().getDescription().isEmpty()) {
                     renderTooltip(context, List.of(component.getSetting().getDescription().split("\n")), mouseX, mouseY);
                     return;
@@ -531,7 +531,7 @@ public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
 
         int tooltipBg = isDarkMode ? (0xF0000000 | DARK_BG_TERTIARY) : (0xF0000000 | WATERMELON_WHITE);
 
-        Render2D.drawPanel(context, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 6, tooltipBg, getAccentColor(), 1);
+        DrawingUtils.drawPanel(context, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 6, tooltipBg, getAccentColor(), 1);
 
         context.drawText(textRenderer, tooltipIcon, tooltipX + 5, tooltipY + 5, getAccentColor(), false);
         for (int i = 0; i < lines.size(); i++) {

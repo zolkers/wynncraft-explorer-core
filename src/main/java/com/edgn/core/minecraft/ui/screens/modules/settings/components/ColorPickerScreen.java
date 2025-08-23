@@ -1,7 +1,8 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
-import com.edgn.uifw.templates.BaseScreen;
+
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
+import com.edgn.core.minecraft.ui.screens.BaseScreen;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -105,7 +106,7 @@ public class ColorPickerScreen extends BaseScreen {
         int bgColor = parentScreen.getBgPrimary();
         int accentColor = parentScreen.getAccentColor();
 
-        Render2D.drawPanelWithShadow(context, pickerX, pickerY, pickerWidth, pickerHeight, 12,
+        DrawingUtils.drawPanelWithShadow(context, pickerX, pickerY, pickerWidth, pickerHeight, 12,
                 bgColor, accentColor, 2, 0x60000000);
 
         context.drawText(textRenderer, this.title, pickerX + 10, pickerY + 10, parentScreen.getTextPrimary(), false);
@@ -132,7 +133,7 @@ public class ColorPickerScreen extends BaseScreen {
     }
 
     private void drawColorArea(DrawContext context) {
-        Render2D.drawRoundedRect(context, colorAreaX - 2, colorAreaY - 2, colorAreaSize + 4, colorAreaSize + 4, 8, 0xFF333333);
+        DrawingUtils.drawRoundedRect(context, colorAreaX - 2, colorAreaY - 2, colorAreaSize + 4, colorAreaSize + 4, 8, 0xFF333333);
 
         int fullHueColor = Color.HSBtoRGB(hue, 1f, 1f);
         context.fillGradient(colorAreaX, colorAreaY, colorAreaX + colorAreaSize, colorAreaY + colorAreaSize, 0xFFFFFFFF, fullHueColor);
@@ -140,12 +141,12 @@ public class ColorPickerScreen extends BaseScreen {
 
         int indicatorX = colorAreaX + (int)(saturation * colorAreaSize);
         int indicatorY = colorAreaY + (int)((1 - brightness) * colorAreaSize);
-        Render2D.drawRoundedRect(context, indicatorX - 4, indicatorY - 4, 8, 8, 4, 0xFFFFFFFF);
-        Render2D.drawRoundedRect(context, indicatorX - 2, indicatorY - 2, 4, 4, 2, 0xFF000000);
+        DrawingUtils.drawRoundedRect(context, indicatorX - 4, indicatorY - 4, 8, 8, 4, 0xFFFFFFFF);
+        DrawingUtils.drawRoundedRect(context, indicatorX - 2, indicatorY - 2, 4, 4, 2, 0xFF000000);
     }
 
     private void drawHueSlider(DrawContext context) {
-        Render2D.drawRoundedRect(context, hueSliderX - 2, hueSliderY - 2, sliderWidth + 4, sliderHeight + 4, 6, 0xFF333333);
+        DrawingUtils.drawRoundedRect(context, hueSliderX - 2, hueSliderY - 2, sliderWidth + 4, sliderHeight + 4, 6, 0xFF333333);
 
         for (int i = 0; i < sliderHeight; i++) {
             float h = (float) i / sliderHeight;
@@ -153,20 +154,20 @@ public class ColorPickerScreen extends BaseScreen {
         }
 
         int indicatorY = hueSliderY + (int)(hue * sliderHeight);
-        Render2D.drawRoundedRect(context, hueSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 2, 0xFFFFFFFF);
-        Render2D.drawBorder(context, hueSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 0xFF000000, 1);
+        DrawingUtils.drawRoundedRect(context, hueSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 2, 0xFFFFFFFF);
+        DrawingUtils.drawBorder(context, hueSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 0xFF000000, 1);
     }
 
     private void drawAlphaSlider(DrawContext context) {
-        Render2D.drawRoundedRect(context, alphaSliderX - 2, alphaSliderY - 2, sliderWidth + 4, sliderHeight + 4, 6, 0xFF333333);
+        DrawingUtils.drawRoundedRect(context, alphaSliderX - 2, alphaSliderY - 2, sliderWidth + 4, sliderHeight + 4, 6, 0xFF333333);
 
         drawCheckerboard(context, alphaSliderX, alphaSliderY, sliderWidth, sliderHeight);
         int colorNoAlpha = getCurrentColor() & 0x00FFFFFF;
         context.fillGradient(alphaSliderX, alphaSliderY, alphaSliderX + sliderWidth, alphaSliderY + sliderHeight, colorNoAlpha, 0xFF000000 | colorNoAlpha);
 
         int indicatorY = alphaSliderY + (int)(alpha * sliderHeight);
-        Render2D.drawRoundedRect(context, alphaSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 2, 0xFFFFFFFF);
-        Render2D.drawBorder(context, alphaSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 0xFF000000, 1);
+        DrawingUtils.drawRoundedRect(context, alphaSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 2, 0xFFFFFFFF);
+        DrawingUtils.drawBorder(context, alphaSliderX - 3, indicatorY - 2, sliderWidth + 6, 4, 0xFF000000, 1);
     }
 
     private void drawPreviews(DrawContext context) {
@@ -174,15 +175,15 @@ public class ColorPickerScreen extends BaseScreen {
 
         context.drawText(textRenderer, "New", previewX, colorAreaY, parentScreen.getTextMuted(), false);
 
-        Render2D.drawRoundedRect(context, previewX - 2, colorAreaY + 8, 42, 42, 8, 0xFF333333);
+        DrawingUtils.drawRoundedRect(context, previewX - 2, colorAreaY + 8, 42, 42, 8, 0xFF333333);
         drawCheckerboard(context, previewX, colorAreaY + 10, 40, 40);
-        Render2D.drawRoundedRect(context, previewX, colorAreaY + 10, 40, 40, 6, getCurrentColor());
+        DrawingUtils.drawRoundedRect(context, previewX, colorAreaY + 10, 40, 40, 6, getCurrentColor());
 
         context.drawText(textRenderer, "Current", previewX, colorAreaY + 59, parentScreen.getTextMuted(), false);
 
-        Render2D.drawRoundedRect(context, previewX - 2, colorAreaY + 68, 42, 42, 8, 0xFF333333);
+        DrawingUtils.drawRoundedRect(context, previewX - 2, colorAreaY + 68, 42, 42, 8, 0xFF333333);
         drawCheckerboard(context, previewX, colorAreaY + 70, 40, 40);
-        Render2D.drawRoundedRect(context, previewX, colorAreaY + 70, 40, 40, 6, initialColor);
+        DrawingUtils.drawRoundedRect(context, previewX, colorAreaY + 70, 40, 40, 6, initialColor);
     }
 
     private void drawTextFieldLabels(DrawContext context) {
@@ -205,9 +206,9 @@ public class ColorPickerScreen extends BaseScreen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            if (Render2D.isPointInRect(mouseX, mouseY, colorAreaX, colorAreaY, colorAreaSize, colorAreaSize)) isDraggingColor = true;
-            else if (Render2D.isPointInRect(mouseX, mouseY, hueSliderX, hueSliderY, sliderWidth, sliderHeight)) isDraggingHue = true;
-            else if (Render2D.isPointInRect(mouseX, mouseY, alphaSliderX, alphaSliderY, sliderWidth, sliderHeight)) isDraggingAlpha = true;
+            if (DrawingUtils.isPointInRect(mouseX, mouseY, colorAreaX, colorAreaY, colorAreaSize, colorAreaSize)) isDraggingColor = true;
+            else if (DrawingUtils.isPointInRect(mouseX, mouseY, hueSliderX, hueSliderY, sliderWidth, sliderHeight)) isDraggingHue = true;
+            else if (DrawingUtils.isPointInRect(mouseX, mouseY, alphaSliderX, alphaSliderY, sliderWidth, sliderHeight)) isDraggingAlpha = true;
         }
         updateAllDrags(mouseX, mouseY);
         return super.mouseClicked(mouseX, mouseY, button);

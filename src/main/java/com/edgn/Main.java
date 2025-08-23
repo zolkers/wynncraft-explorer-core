@@ -32,12 +32,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.ServiceLoader;
 
-public class Main implements ModInitializer {
+public final class Main implements ModInitializer {
 	public static final String MOD_ID = "wynncraft-explorer";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static final String VERSION = "V1.0.0";
 	public static final EventManager EVENT_MANAGER = new EventManager();
-	public static String WYNNCRAFT_FULL_METADATA;
 	public static final OverlayManager OVERLAY_MANAGER  = OverlayManager.getInstance();
 	public static boolean TEST_MODE = false;
 

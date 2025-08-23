@@ -1,6 +1,6 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import com.edgn.core.module.settings.DoubleSetting;
 import net.minecraft.client.MinecraftClient;
@@ -21,7 +21,7 @@ public class DoubleSettingComponent extends SettingComponent {
 
         
         int bgColor = hovered ? (screen.getAccentColor() & 0x40FFFFFF) : screen.getBgSecondary();
-        Render2D.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
+        DrawingUtils.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
 
         
         String valueText = String.format("%.2f", doubleSetting.getValue());
@@ -35,7 +35,7 @@ public class DoubleSettingComponent extends SettingComponent {
         int sliderY = getY() + (height - sliderHeight) / 2;
 
         
-        Render2D.drawRoundedRect(context, sliderX, sliderY, sliderWidth, sliderHeight, 3, 0xFF525252);
+        DrawingUtils.drawRoundedRect(context, sliderX, sliderY, sliderWidth, sliderHeight, 3, 0xFF525252);
 
         
         double progress = (doubleSetting.getValue() - doubleSetting.getMin()) /
@@ -43,13 +43,13 @@ public class DoubleSettingComponent extends SettingComponent {
         int progressWidth = (int) (sliderWidth * progress);
 
         if (progressWidth > 0) {
-            Render2D.drawRoundedRect(context, sliderX, sliderY, progressWidth, sliderHeight, 3, screen.getAccentColor());
+            DrawingUtils.drawRoundedRect(context, sliderX, sliderY, progressWidth, sliderHeight, 3, screen.getAccentColor());
         }
 
         
         int thumbX = sliderX + progressWidth - 4;
         int thumbY = sliderY - 2;
-        Render2D.drawRoundedRect(context, thumbX, thumbY, 8, 10, 4,
+        DrawingUtils.drawRoundedRect(context, thumbX, thumbY, 8, 10, 4,
                 dragging ? 0xFFffffff : (hovered ? 0xFFe5e7eb : 0xFFd1d5db));
     }
 

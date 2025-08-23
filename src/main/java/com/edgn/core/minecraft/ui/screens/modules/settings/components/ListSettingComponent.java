@@ -1,6 +1,6 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings.components;
 
-import com.edgn.uifw.utils.Render2D;
+import com.edgn.api.uifw.ui.utils.DrawingUtils;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
 import com.edgn.core.module.settings.ListSetting;
 import net.minecraft.client.MinecraftClient;
@@ -23,7 +23,7 @@ public class ListSettingComponent<T> extends SettingComponent {
         boolean hovered = isHovered();
 
         int bgColor = hovered ? (screen.getAccentColor() & 0x40FFFFFF) : screen.getBgSecondary();
-        Render2D.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
+        DrawingUtils.drawRoundedRect(context, getX(), getY(), width, height, 8, bgColor);
 
         int controlWidth = 140;
         int controlHeight = height - 8;
@@ -31,7 +31,7 @@ public class ListSettingComponent<T> extends SettingComponent {
         int controlY = getY() + 4;
 
         int controlBgColor = hovered ? screen.getAccentHoverColor() : screen.getAccentColor();
-        Render2D.drawRoundedRect(context, controlX, controlY, controlWidth, controlHeight, 6, controlBgColor);
+        DrawingUtils.drawRoundedRect(context, controlX, controlY, controlWidth, controlHeight, 6, controlBgColor);
 
         List<T> list = listSetting.getValue();
         int size = (list != null) ? list.size() : 0;
@@ -58,7 +58,7 @@ public class ListSettingComponent<T> extends SettingComponent {
             int badgeHeight = controlHeight - 4;
 
             int badgeColor = size > 5 ? 0xFF10b981 : 0x60FFFFFF;
-            Render2D.drawRoundedRect(context, badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 2, badgeColor);
+            DrawingUtils.drawRoundedRect(context, badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 2, badgeColor);
             context.drawText(MinecraftClient.getInstance().textRenderer, countBadge,
                     badgeX + 3, badgeY + (badgeHeight - 8) / 2, screen.getTextPrimary(), false);
         }
@@ -69,7 +69,7 @@ public class ListSettingComponent<T> extends SettingComponent {
         int controlWidth = 140;
         int controlX = getX() + width - controlWidth - 10;
 
-        if (Render2D.isPointInRect(mouseX, mouseY, controlX, getY() + 4, controlWidth, height - 8) && button == 0) {
+        if (DrawingUtils.isPointInRect(mouseX, mouseY, controlX, getY() + 4, controlWidth, height - 8) && button == 0) {
             MinecraftClient.getInstance().getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
             MinecraftClient.getInstance().setScreen(new ListEditScreen<>(screen, this.listSetting));
             return true;
