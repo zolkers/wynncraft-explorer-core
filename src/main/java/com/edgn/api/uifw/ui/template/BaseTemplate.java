@@ -262,7 +262,14 @@ public abstract class BaseTemplate extends EventTemplate {
     @Override
     protected void refreshWidgetPositions() {
         if (width <= 0 || height <= 0) return;
+
+        updateScreenValues();
+
         reflowLayout();
+
+        uiSystem.getEventManager().onResize(MinecraftClient.getInstance(), width, height);
+
+        resizeEvent();
     }
 
     public UIStyleSystem getUISystem() { return uiSystem; }

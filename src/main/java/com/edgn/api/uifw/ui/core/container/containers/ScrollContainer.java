@@ -416,7 +416,6 @@ public class ScrollContainer extends BaseContainer {
 
     @Override
     public void onMouseMove(double mouseX, double mouseY) {
-        // hover/move en MONDE pour tout le monde
         for (UIElement child : getChildren()) {
             if (!child.isVisible() || !child.isRendered()) continue;
             boolean inside = child.isInInteractionZone(mouseX, mouseY);
