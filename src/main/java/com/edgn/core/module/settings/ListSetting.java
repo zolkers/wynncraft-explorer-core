@@ -1,8 +1,6 @@
 package com.edgn.core.module.settings;
 
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.ListSettingComponent;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.SettingComponent;
 import com.google.gson.*;
 
 import java.util.ArrayList;
@@ -54,10 +52,5 @@ public class ListSetting<T> extends Setting<List<T>> {
             newList.add(item);
         }
         setValue(newList);
-    }
-
-    @Override
-    public SettingComponent createComponent(ISettingsScreen screen, int x, int y, int width, int height) {
-        return new ListSettingComponent<>(this, screen, x, y, width, height);
     }
 }

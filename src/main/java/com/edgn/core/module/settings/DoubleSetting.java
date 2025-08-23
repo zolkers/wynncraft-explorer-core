@@ -1,8 +1,6 @@
 package com.edgn.core.module.settings;
 
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.DoubleSettingComponent;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.SettingComponent;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
@@ -28,10 +26,5 @@ public class DoubleSetting extends Setting<Double> {
         if (element != null && element.isJsonPrimitive()) {
             setValue(element.getAsDouble());
         }
-    }
-
-    @Override
-    public SettingComponent createComponent(ISettingsScreen screen, int x, int y, int width, int height) {
-        return new DoubleSettingComponent(this, screen, x, y, width, height);
     }
 }

@@ -1,7 +1,6 @@
 package com.edgn.core.module.settings;
 
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.SettingComponent;
 import com.google.gson.JsonElement;
 import com.google.gson.annotations.Expose;
 
@@ -85,6 +84,4 @@ public abstract class Setting<T> {
     public abstract JsonElement toJsonElement();
 
     public abstract void fromJsonElement(JsonElement element);
-
-    public abstract SettingComponent createComponent(ISettingsScreen screen, int x, int y, int width, int height);
 }

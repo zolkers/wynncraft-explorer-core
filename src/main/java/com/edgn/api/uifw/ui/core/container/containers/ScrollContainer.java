@@ -5,6 +5,7 @@ import com.edgn.api.uifw.ui.core.container.BaseContainer;
 import com.edgn.api.uifw.ui.core.item.items.ScrollbarItem;
 import com.edgn.api.uifw.ui.core.models.scroll.ContainerScrollbarModel;
 import com.edgn.api.uifw.ui.css.UIStyleSystem;
+import com.edgn.api.uifw.ui.layout.LayoutEngine;
 import com.edgn.api.uifw.ui.layout.ZIndex;
 import net.minecraft.client.gui.DrawContext;
 
@@ -14,6 +15,9 @@ public class ScrollContainer extends BaseContainer {
     protected boolean scrollEnabled = true;
     protected boolean verticalScroll = true;
     protected boolean horizontalScroll = false;
+
+    private UIElement captured = null;
+    private int capturedButton = -1;
 
     protected int scrollX = 0;
     protected int scrollY = 0;
@@ -62,26 +66,42 @@ public class ScrollContainer extends BaseContainer {
 
     @Override
     protected void updateInteractionBounds() {
-        int innerX = calculatedX + getPaddingLeft();
-        int innerY = calculatedY + getPaddingTop();
-        int innerW = baseViewportWidth();
-        int innerH = baseViewportHeight();
-        this.interactionBounds = new InteractionBounds(innerX, innerY, innerW, innerH);
+        int ix = calculatedX + getPaddingLeft();
+        int iy = calculatedY + getPaddingTop();
+        int iw = Math.max(0, calculatedWidth  - getPaddingLeft() - getPaddingRight());
+        int ih = Math.max(0, calculatedHeight - getPaddingTop()  - getPaddingBottom());
+
+        int minX = ix, minY = iy, maxX = ix + iw, maxY = iy + ih;
+
+        if (parent != null) {
+            InteractionBounds pb = parent.getInteractionBounds();
+            if (pb != null && pb.width > 0 && pb.height > 0) {
+                minX = Math.max(minX, pb.minX);
+                minY = Math.max(minY, pb.minY);
+                maxX = Math.min(maxX, pb.maxX);
+                maxY = Math.min(maxY, pb.maxY);
+            }
+        }
+
+        this.interactionBounds = new InteractionBounds(
+                minX, minY,
+                Math.max(0, maxX - minX),
+                Math.max(0, maxY - minY)
+        );
     }
 
     @Override
     public int getChildInteractionOffsetX(UIElement child) {
         if (child instanceof ScrollbarItem) return 0;
-        if (child.ignoresParentScroll()) return 0;
         return -scrollX;
     }
 
     @Override
     public int getChildInteractionOffsetY(UIElement child) {
         if (child instanceof ScrollbarItem) return 0;
-        if (child.ignoresParentScroll()) return 0;
         return -scrollY;
     }
+
     protected void computeContentSize() {
         final int originX = getViewportX();
         final int originY = getViewportY();
@@ -277,6 +297,47 @@ public class ScrollContainer extends BaseContainer {
         clampScroll();
     }
 
+    private boolean isScrollbar(UIElement el) { return (el instanceof ScrollbarItem); }
+
+
+    private boolean dispatchToScrollbarsClick(double x, double y, int button) {
+        for (UIElement child : getChildren()) {
+            if (!child.isVisible() || !child.isEnabled() || !child.isRendered()) continue;
+            if (!isScrollbar(child)) continue;
+            if (!child.canInteract(x, y)) continue;
+            if (child.onMouseClick(x, y, button)) return true;
+        }
+        return false;
+    }
+
+    private boolean dispatchToScrollbarsRelease(double x, double y, int button) {
+        for (UIElement child : getChildren()) {
+            if (!child.isVisible() || !child.isEnabled() || !child.isRendered()) continue;
+            if (!isScrollbar(child)) continue;
+            if (child.onMouseRelease(x, y, button)) return true;
+        }
+        return false;
+    }
+
+    private boolean dispatchToScrollbarsDrag(double x, double y, int button, double dx, double dy) {
+        for (UIElement child : getChildren()) {
+            if (!child.isVisible() || !child.isEnabled() || !child.isRendered()) continue;
+            if (!isScrollbar(child)) continue;
+            if (child.onMouseDrag(x, y, button, dx, dy)) return true;
+        }
+        return false;
+    }
+
+    private boolean dispatchToScrollbarsScroll(double x, double y, double delta) {
+        for (UIElement child : getChildren()) {
+            if (!child.isVisible() || !child.isEnabled() || !child.isRendered()) continue;
+            if (!isScrollbar(child)) continue;
+            if (child.onMouseScroll(x, y, delta)) return true;
+        }
+        return false;
+    }
+
+
     private void renderChildren(DrawContext context, boolean includeScrollbars) {
         for (UIElement child : getChildren()) {
             if (!isRenderable(child)) continue;
@@ -305,11 +366,72 @@ public class ScrollContainer extends BaseContainer {
     }
 
     @Override
+    public boolean onMouseClick(double mouseX, double mouseY, int button) {
+        if (!isInInteractionZone(mouseX, mouseY)) return false;
+
+        // z-order top → bottom
+        java.util.List<UIElement> sorted = LayoutEngine.sortByRenderOrder(getChildren());
+        for (int i = sorted.size() - 1; i >= 0; i--) {
+            UIElement child = sorted.get(i);
+            if (child == null || !child.isVisible() || !child.isEnabled() || !child.isRendered()) continue;
+
+            // Test & dispatch en COORDONNÉES MONDE
+            if (!child.canInteract(mouseX, mouseY)) continue;
+            if (child.onMouseClick(mouseX, mouseY, button)) {
+                captured = child;
+                capturedButton = button;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onMouseRelease(double mouseX, double mouseY, int button) {
+        try {
+            if (captured != null && button == capturedButton) {
+                return captured.onMouseRelease(mouseX, mouseY, button);
+            }
+        } finally {
+            if (button == capturedButton) { captured = null; capturedButton = -1; }
+        }
+
+        // sinon, on offre quand même la release aux scrollbars si besoin
+        java.util.List<UIElement> sorted = LayoutEngine.sortByRenderOrder(getChildren());
+        for (int i = sorted.size() - 1; i >= 0; i--) {
+            UIElement child = sorted.get(i);
+            if (!isScrollbar(child)) continue;
+            if (child.onMouseRelease(mouseX, mouseY, button)) return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onMouseDrag(double mouseX, double mouseY, int button, double dx, double dy) {
+        if (captured != null && button == capturedButton) {
+            return captured.onMouseDrag(mouseX, mouseY, button, dx, dy);
+        }
+        return false;
+    }
+
+    @Override
+    public void onMouseMove(double mouseX, double mouseY) {
+        // hover/move en MONDE pour tout le monde
+        for (UIElement child : getChildren()) {
+            if (!child.isVisible() || !child.isRendered()) continue;
+            boolean inside = child.isInInteractionZone(mouseX, mouseY);
+            if (inside && !child.isHovered()) child.onMouseEnter();
+            else if (!inside && child.isHovered()) child.onMouseLeave();
+            if (inside) child.onMouseMove(mouseX, mouseY);
+        }
+    }
+
+    @Override
     public boolean onMouseScroll(double mouseX, double mouseY, double scrollDelta) {
         if (!scrollEnabled) return false;
         if (!isInInteractionZone(mouseX, mouseY)) return false;
         boolean used = false;
-        if (verticalScroll) { scrollY -= (int) Math.round(scrollDelta * scrollStep); used = true; }
+        if (verticalScroll)   { scrollY -= (int) Math.round(scrollDelta * scrollStep); used = true; }
         if (horizontalScroll) { scrollX -= (int) Math.round(scrollDelta * scrollStep); used = true; }
         clampScroll();
         return used;

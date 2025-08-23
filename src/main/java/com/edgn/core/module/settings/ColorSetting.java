@@ -1,8 +1,6 @@
 package com.edgn.core.module.settings;
 
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.ColorSettingComponent;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.SettingComponent;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
@@ -27,10 +25,5 @@ public class ColorSetting extends Setting<Integer> {
         if (element != null && element.isJsonPrimitive()) {
             setValue(element.getAsInt());
         }
-    }
-
-    @Override
-    public SettingComponent createComponent(ISettingsScreen screen, int x, int y, int width, int height) {
-        return new ColorSettingComponent(this, screen, x, y, width, height);
     }
 }

@@ -191,6 +191,16 @@ public abstract class BaseContainer extends UIElement implements IContainer {
         }
     }
 
+    @Override
+    public int getChildInteractionOffsetX(UIElement child) {
+        return (parent != null) ? parent.getChildInteractionOffsetX(this) : 0;
+    }
+
+    @Override
+    public int getChildInteractionOffsetY(UIElement child) {
+        return (parent != null) ? parent.getChildInteractionOffsetY(this) : 0;
+    }
+
     public List<UIElement> getChildren() {
         return new ArrayList<>(children);
     }

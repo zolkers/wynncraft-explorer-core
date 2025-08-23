@@ -256,7 +256,6 @@ public class ListEditScreen<T> extends BaseScreen {
         double handleHeight = Math.max(20, listHeight * ((double)listHeight / maxScroll));
         double handleY = listY + (scrollOffset / (maxScroll - listHeight)) * (listHeight - handleHeight);
 
-        // Handle de la scrollbar avec DrawingUtils
         DrawingUtils.drawRoundedRect(context, scrollbarX, (int) handleY, 5, (int) handleHeight, 3, accentColor);
     }
 

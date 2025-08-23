@@ -38,7 +38,7 @@ public final class Main implements ModInitializer {
 	public static final String VERSION = "V1.0.0";
 	public static final EventManager EVENT_MANAGER = new EventManager();
 	public static final OverlayManager OVERLAY_MANAGER  = OverlayManager.getInstance();
-	public static boolean TEST_MODE = false;
+	public static final boolean TEST_MODE = true;
 
 	private static final CoreApiImpl CORE_API = new CoreApiImpl();
 	public static EdgnCoreApi getCoreApi() { return CORE_API; }
@@ -90,25 +90,31 @@ public final class Main implements ModInitializer {
 
 			CORE_API.markBootCompleted();
 
-			for (EdgnExtension ext : exts) {
-				try { ext.onLoad(CORE_API); } catch (Throwable t) {
-					LOGGER.error("[Ext:{}] onLoad failed: {}", ext.id(), t.toString());
-				}
-				try { ext.registerModules(CORE_API.modules()); } catch (Throwable t) {
-					LOGGER.error("[Ext:{}] registerModules failed: {}", ext.id(), t.toString());
-				}
-				try { ext.registerCommands(CORE_API.commands()); } catch (Throwable t) {
-					LOGGER.error("[Ext:{}] registerCommands failed: {}", ext.id(), t.toString());
-				}
-				try { ext.registerServices(CORE_API.services()); } catch (Throwable t) {
-					LOGGER.error("[Ext:{}] registerServices failed: {}", ext.id(), t.toString());
-				}
-				try { ext.registerUi(CORE_API.ui()); } catch (Throwable t) {
-					LOGGER.error("[Ext:{}] registerUi failed: {}", ext.id(), t.toString());
-				}
-			}
+			extensionsEntryPoints(exts);
 		} catch (Throwable t) {
 			LOGGER.error("Extension discovery failed: {}", t.toString());
 		}
 	}
+
+	private static void extensionsEntryPoints(List<EdgnExtension> exts) {
+		for (EdgnExtension ext : exts) {
+			try { ext.onLoad(CORE_API); } catch (Throwable t) {
+				LOGGER.error("[Ext:{}] onLoad failed: {}", ext.id(), t.toString());
+			}
+			try { ext.registerModules(CORE_API.modules()); } catch (Throwable t) {
+				LOGGER.error("[Ext:{}] registerModules failed: {}", ext.id(), t.toString());
+			}
+			try { ext.registerCommands(CORE_API.commands()); } catch (Throwable t) {
+				LOGGER.error("[Ext:{}] registerCommands failed: {}", ext.id(), t.toString());
+			}
+			try { ext.registerServices(CORE_API.services()); } catch (Throwable t) {
+				LOGGER.error("[Ext:{}] registerServices failed: {}", ext.id(), t.toString());
+			}
+			try { ext.registerUi(CORE_API.ui()); } catch (Throwable t) {
+				LOGGER.error("[Ext:{}] registerUi failed: {}", ext.id(), t.toString());
+			}
+		}
+	}
+
+
 }

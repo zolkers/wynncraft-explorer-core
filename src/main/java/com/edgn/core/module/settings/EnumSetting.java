@@ -1,8 +1,6 @@
 package com.edgn.core.module.settings;
 
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.EnumSettingComponent;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.SettingComponent;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
@@ -74,10 +72,5 @@ public class EnumSetting<T extends Enum<T>> extends Setting<T> {
         } catch (IllegalArgumentException e) {
 
         }
-    }
-
-    @Override
-    public SettingComponent createComponent(ISettingsScreen screen, int x, int y, int width, int height) {
-        return new EnumSettingComponent<>(this, screen, x, y, width, height);
     }
 }

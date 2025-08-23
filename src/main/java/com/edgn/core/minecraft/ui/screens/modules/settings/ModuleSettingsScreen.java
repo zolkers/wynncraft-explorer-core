@@ -1,552 +1,392 @@
 package com.edgn.core.minecraft.ui.screens.modules.settings;
 
 import com.edgn.Main;
-import com.edgn.api.uifw.ui.utils.DrawingUtils;
-import com.edgn.core.minecraft.ui.screens.BaseScreen;
+import com.edgn.api.uifw.ui.core.components.TextComponent;
+import com.edgn.api.uifw.ui.core.container.BaseContainer;
+import com.edgn.api.uifw.ui.core.container.containers.FlexContainer;
+import com.edgn.api.uifw.ui.core.container.containers.ListContainer;
+import com.edgn.api.uifw.ui.core.item.BaseItem;
+import com.edgn.api.uifw.ui.core.item.items.ButtonItem;
+import com.edgn.api.uifw.ui.core.item.items.LabelItem;
+import com.edgn.api.uifw.ui.core.item.items.settings.*;
+import com.edgn.api.uifw.ui.core.item.items.settings.ModuleKeybindItem;
+import com.edgn.api.uifw.ui.css.StyleKey;
+import com.edgn.api.uifw.ui.utils.ColorUtils;
+import com.edgn.api.uifw.ui.template.BaseTemplate;
+import com.edgn.api.uifw.ui.template.TemplateSettings;
 import com.edgn.core.module.basic.AbstractModule;
 import com.edgn.core.module.basic.ISettingsModule;
 import com.edgn.core.module.basic.ModuleInfo;
-import com.edgn.core.module.settings.Setting;
-import com.edgn.core.module.settings.SettingsGroup;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.SettingComponent;
+import com.edgn.core.module.settings.*;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-public class ModuleSettingsScreen extends BaseScreen implements ISettingsScreen{
+public final class ModuleSettingsScreen extends BaseTemplate implements ISettingsScreen {
 
-    private static final int WATERMELON_GREEN = 0xFF2ECC71;
-    private static final int WATERMELON_DARK_GREEN = 0xFF27AE60;
-    private static final int WATERMELON_RED = 0xFFE74C3C;
-    private static final int WATERMELON_PINK = 0xFFFF6B9D;
-    private static final int WATERMELON_BLACK = 0xFF2C3E50;
-    private static final int WATERMELON_WHITE = 0xFFF8F9FA;
-    private static final int WATERMELON_LIGHT_GREEN = 0xFFE8F8E8;
-    private static final int DARK_BG_PRIMARY = 0xFF1A1A1A;
-    private static final int DARK_BG_SECONDARY = 0xFF2D2D30;
-    private static final int DARK_BG_TERTIARY = 0xFF3E3E42;
-    private static final int DARK_ACCENT = 0xFF007ACC;
-    private static final int DARK_ACCENT_HOVER = 0xFF005A9E;
-    private static final int DARK_TEXT_PRIMARY = 0xFFFFFFFF;
-    private static final int DARK_TEXT_SECONDARY = 0xFFCCCCCC;
-    private static final int DARK_TEXT_MUTED = 0xFF999999;
-    private static final int DARK_SUCCESS = 0xFF4CAF50;
-    private static final int DARK_ERROR = 0xFFF44336;
+    private static final class Theme {
+        static final int BG_MAIN = 0xFF0F1115;
+        static final int SURFACE = 0xFF111113;
+        static final int FOREGROUND = 0xFFE5E7EB;
+        static final int INPUT = 0xFF18181B;
+        static final int CARD = 0xFF111113;
+        static final int SECONDARY = 0xFF27272A;
+        static final int SECONDARY_FG = 0xFFE5E7EB;
+        static final int PRIMARY = 0xFFA78BFA;
+        static final int PRIMARY_FG = 0xFF0B0B0F;
+        static final int BORDER = 0xFF2A2A2E;
+    }
 
-    private static final int SIDEBAR_WIDTH = 260;
-    private static final int SETTING_HEIGHT = 60;
-    private static final int SETTING_SPACING = 15;
-    private static final int CONTROL_WIDTH = 180;
-    private static final int CONTROL_HEIGHT = 24;
-    private static final int CONTROL_PADDING_RIGHT = 20;
+    private static final int PADDING = 16;
+    private static final int GAP = 16;
+    private static final int SIDEBAR_W = 260;
+    private static final int ROW_H = 64;
 
-    private final Screen parentScreen;
+    private final Screen prev;
     private final ISettingsModule settingsModule;
     private final AbstractModule module;
-    private final boolean isDarkMode;
+    private final boolean darkMode;
+    private final List<SettingsGroup> groups = new ArrayList<>();
 
-    private final List<SettingsGroupTab> groupTabs = new ArrayList<>();
-    private SettingsGroup selectedGroup = null;
-    private double scrollOffset = 0;
-    private double maxScrollOffset = 0;
+    private SettingsGroup selectedGroup;
 
-    private long animationTime = 0;
-    private float sidebarSlideAnimation = 0.0f;
+    private FlexContainer rootContent;
+    private ListContainer sidebar;
+    private FlexContainer rightCol;
+    private ListContainer settingsList;
+    private ButtonItem btnBack;
+    private ButtonItem btnSave;
+    private ButtonItem btnReset;
 
-    private ModuleKeybindComponent moduleKeybindComponent;
-
-    private final List<SettingComponent> settingComponents = new ArrayList<>();
-
-    public ModuleSettingsScreen(Screen parentScreen, ISettingsModule settingsModule, boolean isDarkMode) {
-        super(Text.literal((isDarkMode ? "🌙 " : "🍉 ") + ((AbstractModule) settingsModule).getName() + " - Settings"));
-        this.parentScreen = parentScreen;
+    public ModuleSettingsScreen(Screen prev, ISettingsModule settingsModule, boolean darkMode) {
+        super(Text.of((darkMode ? "🌙 " : "🍉 ") + ((AbstractModule) settingsModule).getName() + " - Settings"), prev);
+        this.prev = prev;
         this.settingsModule = settingsModule;
         this.module = (AbstractModule) settingsModule;
-        this.isDarkMode = isDarkMode;
-
-        initializeSettings();
-    }
-
-    public int getBgPrimary() { return isDarkMode ? DARK_BG_PRIMARY : WATERMELON_WHITE; }
-    public int getBgSecondary() { return isDarkMode ? DARK_BG_SECONDARY : WATERMELON_LIGHT_GREEN; }
-    public int getBgTertiary() { return isDarkMode ? DARK_BG_TERTIARY : 0xFFF8F8F8; }
-    public int getAccentColor() { return isDarkMode ? DARK_ACCENT : WATERMELON_GREEN; }
-    public int getAccentHoverColor() { return isDarkMode ? DARK_ACCENT_HOVER : WATERMELON_DARK_GREEN; }
-    public int getTextPrimary() { return isDarkMode ? DARK_TEXT_PRIMARY : WATERMELON_BLACK; }
-    public int getTextSecondary() { return isDarkMode ? DARK_TEXT_SECONDARY : 0xFF666666; }
-    public int getTextMuted() { return isDarkMode ? DARK_TEXT_MUTED : 0xFF888888; }
-    public int getSuccessColor() { return isDarkMode ? DARK_SUCCESS : WATERMELON_GREEN; }
-    public int getErrorColor() { return isDarkMode ? DARK_ERROR : WATERMELON_RED; }
-
-    private void initializeSettings() {
-        groupTabs.clear();
-
-        List<SettingsGroup> groups = settingsModule.getSettingsGroups();
+        this.darkMode = darkMode;
+        if (settingsModule.getSettingsGroups() != null) {
+            this.groups.addAll(settingsModule.getSettingsGroups());
+        }
         if (!groups.isEmpty()) {
-            selectedGroup = groups.getFirst();
+            this.selectedGroup = groups.getFirst();
         }
-
-        for (int i = 0; i < groups.size(); i++) {
-            SettingsGroup group = groups.get(i);
-            String emoji = getGroupEmoji(i);
-            groupTabs.add(new SettingsGroupTab(group, emoji + " " + group.getName()));
-        }
-    }
-
-    private void updateSettingComponents() {
-        this.clearChildren();
-        this.settingComponents.clear();
-
-        moduleKeybindComponent = null;
-
-        if (selectedGroup != null) {
-            for (Setting<?> setting : selectedGroup.getSettings()) {
-                if (setting.isVisible()) {
-                    SettingComponent component = setting.createComponent(this, 0, 0, CONTROL_WIDTH, CONTROL_HEIGHT);
-                    if (component != null) {
-                        this.settingComponents.add(component);
-                        this.addSelectableChild(component);
-                    }
-                }
-            }
-        }
-
-        if (height > 0) {
-            int totalHeight = settingComponents.size() * (SETTING_HEIGHT + SETTING_SPACING);
-            int availableHeight = height - headerHeight - footerHeight - 80;
-            maxScrollOffset = Math.max(0, totalHeight - availableHeight);
-            scrollOffset = Math.max(0, Math.min(scrollOffset, maxScrollOffset));
-        }
-
-        layoutSettingComponents();
-    }
-
-    private void layoutSettingComponents() {
-        if (width <= 0 || height <= 0) return;
-
-        int startY = headerHeight + 80 - (int) scrollOffset;
-        int contentWidth = width - SIDEBAR_WIDTH - 60;
-        int settingX = SIDEBAR_WIDTH + 30;
-
-        for (SettingComponent component : settingComponents) {
-            component.setX(settingX + contentWidth - CONTROL_WIDTH - CONTROL_PADDING_RIGHT);
-            component.setY(startY + (SETTING_HEIGHT - CONTROL_HEIGHT) / 2);
-            startY += SETTING_HEIGHT + SETTING_SPACING;
-        }
-    }
-
-    private String getGroupEmoji(int index) {
-        String[] emojis = isDarkMode ? new String[]{"🌙", "⭐", "🔧", "🎨", "⚙️", "💎", "🌟", "🚀"} : new String[]{"🍉", "🌱", "⚙️", "🎨", "🔧", "💎", "🌟", "🚀"};
-        return emojis[index % emojis.length];
     }
 
     @Override
-    protected void init() {
-        super.init();
-        createButtons();
-        updateSettingComponents();
-    }
-
-    private void createButtons() {
-        this.addDrawableChild(ButtonWidget.builder(Text.literal((isDarkMode ? "🌙" : "🍉") + " Back"), button -> this.close()).dimensions(20, 5, 100, 25).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("💾 Save"), button -> saveSettings()).dimensions(width - 130, 5, 110, 25).build());
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("🔄 Reset"), button -> resetSettings()).dimensions(width - 250, 5, 100, 25).build());
+    protected TemplateSettings templateSettings() {
+        return new TemplateSettings()
+                .setHeader(true)
+                .setFooter(true);
     }
 
     @Override
-    protected void renderContent(DrawContext context, int mouseX, int mouseY, float delta) {
-        animationTime = System.currentTimeMillis();
-        updateAnimations(delta);
-
-        renderContentBackground(context);
-        renderSidebar(context, mouseX, mouseY);
-        renderSettingsArea(context, mouseX, mouseY, delta);
-        renderScrollbar(context);
+    protected BaseContainer createHeader() {
+        FlexContainer header = new FlexContainer(uiSystem, 0, 0, width, headerHeight)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_BETWEEN, StyleKey.ITEMS_CENTER,
+                        StyleKey.PR_3, StyleKey.PT_2, StyleKey.SHADOW_MD);
+        header.setBackgroundColor(Theme.SURFACE).setRenderBackground(true);
+        String icon = darkMode ? "🌙" : "🍉";
+        LabelItem title = new LabelItem(uiSystem, 0, 0,
+                new TextComponent(icon + " " + module.getName()).color(Theme.FOREGROUND))
+                .addClass(StyleKey.FLEX_BASIS_40);
+        createActionButtons(icon);
+        FlexContainer actions = new FlexContainer(uiSystem, 0, 0, 200, 24)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.GAP_2, StyleKey.JUSTIFY_END, StyleKey.ITEMS_CENTER);
+        actions.addChild(btnReset).addChild(btnSave).addChild(btnBack);
+        header.addChild(title);
+        header.addChild(actions.addClass(StyleKey.FLEX_BASIS_40));
+        return header;
     }
 
-    private void renderSettingsArea(DrawContext context, int mouseX, int mouseY, float delta) {
+    private void createActionButtons(String icon) {
+        btnBack = new ButtonItem(uiSystem, 0, 0, 88, 24,
+                new TextComponent(icon + " Back").color(Theme.PRIMARY_FG))
+                .backgroundColor(Theme.PRIMARY)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_25)
+                .onClick(this::close);
+        btnReset = new ButtonItem(uiSystem, 0, 0, 88, 24,
+                new TextComponent("Reset").color(Theme.SECONDARY_FG))
+                .backgroundColor(Theme.SECONDARY)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_25)
+                .onClick(this::resetSettings);
+        btnSave = new ButtonItem(uiSystem, 0, 0, 88, 24,
+                new TextComponent("Save").color(Theme.PRIMARY_FG))
+                .backgroundColor(Theme.PRIMARY)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_25)
+                .onClick(this::saveSettings);
+    }
+
+    @Override
+    protected BaseContainer createContent() {
+        rootContent = new FlexContainer(uiSystem, 0, 0, width, contentHeight)
+                .setBackgroundColor(ColorUtils.setOpacity(Theme.BG_MAIN, 0.90f))
+                .setRenderBackground(true)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.GAP_4, StyleKey.P_3);
+        createSidebar();
+        createRightColumn();
+        rootContent.addChild(sidebar);
+        rootContent.addChild(rightCol);
+        layoutContent();
+        rebuildSettingsList();
+        return rootContent;
+    }
+
+    private void createSidebar() {
+        sidebar = new ListContainer(uiSystem, 0, 0, SIDEBAR_W, contentHeight)
+                .addClass(StyleKey.P_2, StyleKey.GAP_2, StyleKey.ROUNDED_LG, StyleKey.SHADOW_MD)
+                .setScrollable(true)
+                .setScrollAxes(true, false)
+                .setShowScrollbars(false)
+                .setScrollStep(10);
+        sidebar.setBackgroundColor(Theme.CARD).setRenderBackground(true);
+        buildSidebar();
+    }
+
+    private void createRightColumn() {
+        rightCol = new FlexContainer(uiSystem, 0, 0, 100, contentHeight)
+                .addClass(StyleKey.FLEX_COLUMN, StyleKey.GAP_3, StyleKey.FLEX_GROW_2);
+        String groupName = (selectedGroup != null ? selectedGroup.getName() : "No group");
+        LabelItem groupTitle = new LabelItem(uiSystem, 0, 0,
+                new TextComponent(groupName).color(Theme.FOREGROUND));
+        settingsList = new ListContainer(uiSystem, 0, 0, 100, contentHeight - 40)
+                .addClass(StyleKey.GAP_2, StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.P_1, StyleKey.PR_3)
+                .setScrollable(true)
+                .setShowScrollbars(true)
+                .setScrollAxes(true, false)
+                .setScrollStep(18);
+        settingsList.setBackgroundColor(Theme.CARD).setRenderBackground(true);
+        rightCol.addChild(groupTitle);
+        rightCol.addChild(settingsList);
+    }
+
+    @Override
+    protected BaseContainer createFooter() {
+        FlexContainer footer = new FlexContainer(uiSystem, 0, 0, width, footerHeight)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_CENTER, StyleKey.ITEMS_CENTER, StyleKey.SHADOW_MD);
+        footer.setBackgroundColor(Theme.SURFACE).setRenderBackground(true);
+        String status = module.isEnabled() ? "✅ ACTIVATED" : "❌ DEACTIVATED";
+        footer.addChild(new LabelItem(uiSystem, 0, 0,
+                new TextComponent(status).color(Theme.FOREGROUND))
+                .align(TextComponent.TextAlign.CENTER));
+        return footer;
+    }
+
+    private void layoutContent() {
+        if (rootContent == null) return;
+        int usableX = PADDING;
+        int usableY = PADDING;
+        int usableW = Math.max(0, width - 2 * PADDING);
+        int usableH = Math.max(0, contentHeight - PADDING);
+        sidebar.setX(usableX);
+        sidebar.setY(usableY);
+        sidebar.setWidth(SIDEBAR_W);
+        sidebar.setHeight(usableH);
+        sidebar.markConstraintsDirty();
+        int rightX = usableX + SIDEBAR_W + GAP;
+        int rightW = Math.max(0, usableW - SIDEBAR_W - GAP);
+        rightCol.setX(rightX);
+        rightCol.setY(usableY);
+        rightCol.setWidth(rightW);
+        rightCol.setHeight(usableH);
+        rightCol.markConstraintsDirty();
+        settingsList.setX(0);
+        settingsList.setY(28);
+        settingsList.setWidth(rightW);
+        settingsList.setHeight(Math.max(0, usableH - 28));
+        settingsList.markConstraintsDirty();
+    }
+
+    private void buildSidebar() {
+        sidebar.clearChildren();
+        FlexContainer modInfo = createModuleInfoCard();
+        sidebar.addChild(modInfo);
+        sidebar.addChild(new LabelItem(uiSystem, 0, 0,
+                new TextComponent("Groups").color(Theme.FOREGROUND))
+                .addClass(StyleKey.MT_2, StyleKey.MB_1));
+        createGroupTabs();
+    }
+
+    private FlexContainer createModuleInfoCard() {
+        FlexContainer modInfo = new FlexContainer(uiSystem, 0, 0, SIDEBAR_W - 16, 84)
+                .addClass(StyleKey.FLEX_COLUMN, StyleKey.GAP_1, StyleKey.P_2,
+                        StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM);
+        modInfo.setBackgroundColor(Theme.SECONDARY).setRenderBackground(true);
+        ModuleInfo info = module.getClass().getAnnotation(ModuleInfo.class);
+        String icon = darkMode ? "🌙" : "🍉";
+        modInfo.addChild(new LabelItem(uiSystem, 0, 0,
+                new TextComponent(icon + " " + module.getName()).color(Theme.SECONDARY_FG)));
+        if (info != null) {
+            modInfo.addChild(new LabelItem(uiSystem, 0, 0,
+                    new TextComponent("v" + info.version()).color(Theme.SECONDARY_FG)));
+            modInfo.addChild(new LabelItem(uiSystem, 0, 0,
+                    new TextComponent(info.category().getDisplayName()).color(Theme.SECONDARY_FG)));
+        }
+        ModuleKeybindItem keybind = new ModuleKeybindItem(uiSystem, 0, 0, SIDEBAR_W - 32, 24, module, this)
+                .addClass(StyleKey.MT_1);
+        modInfo.addChild(keybind);
+        return modInfo;
+    }
+
+    private void createGroupTabs() {
+        for (SettingsGroup group : groups) {
+            boolean selected = Objects.equals(group, selectedGroup);
+            ButtonItem tab = new ButtonItem(uiSystem, 0, 0, SIDEBAR_W - 16, 30,
+                    new TextComponent((selected ? "▶ " : "") + group.getName())
+                            .color(selected ? Theme.PRIMARY_FG : Theme.SECONDARY_FG))
+                    .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.HOVER_BRIGHTEN)
+                    .backgroundColor(selected ? Theme.PRIMARY : Theme.SECONDARY)
+                    .onClick(() -> selectGroup(group));
+            sidebar.addChild(tab);
+        }
+    }
+
+    private void selectGroup(SettingsGroup group) {
+        if (selectedGroup != group) {
+            selectedGroup = group;
+            rebuildSettingsList();
+            buildSidebar();
+        }
+    }
+
+    private void rebuildSettingsList() {
+        settingsList.clearChildren();
         if (selectedGroup == null) return;
-
-        String groupIcon = isDarkMode ? "🌙" : "🍉";
-        context.drawText(textRenderer, groupIcon + " " + selectedGroup.getName(), SIDEBAR_WIDTH + 30, headerHeight + 30, getTextPrimary(), false);
-        if (!selectedGroup.getDescription().isEmpty()) {
-            context.drawText(textRenderer, selectedGroup.getDescription(), SIDEBAR_WIDTH + 30, headerHeight + 45, getTextSecondary(), false);
-        }
-
-        int clipStartY = headerHeight + 70;
-        DrawingUtils.enableClipping(context, SIDEBAR_WIDTH, clipStartY, width - SIDEBAR_WIDTH, height - footerHeight - clipStartY);
-
-        for (SettingComponent component : settingComponents) {
-            int rowY = component.getY() - (SETTING_HEIGHT - CONTROL_HEIGHT) / 2;
-
-            Setting<?> setting = component.getSetting();
-            int settingX = SIDEBAR_WIDTH + 30;
-            int contentWidth = width - SIDEBAR_WIDTH - 60;
-
-            boolean isRowHovered = DrawingUtils.isPointInRect(mouseX, mouseY, settingX, rowY, contentWidth, SETTING_HEIGHT);
-            int bgColor = isRowHovered ? getBgTertiary() : getBgSecondary();
-
-            // Utilisation de DrawingUtils pour les lignes de paramètres
-            DrawingUtils.drawPanel(context, settingX, rowY, contentWidth, SETTING_HEIGHT, 6, bgColor, getAccentColor(), 1);
-
-            context.drawText(textRenderer, setting.getName(), settingX + 10, rowY + 12, getTextPrimary(), false);
-            if (!setting.getDescription().isEmpty()) {
-                context.drawText(textRenderer, setting.getDescription(), settingX + 10, rowY + 28, getTextMuted(), false);
-            }
-
-            component.render(context, mouseX, mouseY, delta);
-        }
-
-        DrawingUtils.disableClipping(context);
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        for (SettingsGroupTab tab : groupTabs) {
-            int sidebarX = (int) (-SIDEBAR_WIDTH * (1.0f - sidebarSlideAnimation));
-            if (DrawingUtils.isPointInRect(mouseX, mouseY, sidebarX + 10, tab.y, SIDEBAR_WIDTH - 20, 35)) {
-                if (selectedGroup != tab.group) {
-                    selectedGroup = tab.group;
-                    scrollOffset = 0;
-                    updateSettingComponents();
-                }
-                return true;
+        for (Setting<?> setting : selectedGroup.getSettings()) {
+            if (setting.isVisible()) {
+                settingsList.addChild(buildSettingRow(setting));
             }
         }
-
-        return super.mouseClicked(mouseX, mouseY, button);
     }
 
-    @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    private BaseContainer buildSettingRow(Setting<?> setting) {
+        FlexContainer row = new FlexContainer(uiSystem, 0, 0, 1, ROW_H)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_BETWEEN, StyleKey.ITEMS_CENTER, StyleKey.FLEX_GROW_2,
+                        StyleKey.PR_3, StyleKey.PT_2, StyleKey.ROUNDED_MD, StyleKey.SHADOW_MD,
+                        StyleKey.HOVER_BRIGHTEN);
+        row.setBackgroundColor(Theme.CARD).setRenderBackground(true);
+        FlexContainer left = createSettingDescription(setting);
+        FlexContainer right = createSettingControl(setting);
+        row.addChild(left);
+        row.addChild(right);
+        return row;
     }
 
-    @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return super.mouseReleased(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        if (maxScrollOffset > 0 && mouseX > SIDEBAR_WIDTH) {
-            scrollOffset -= verticalAmount * 20;
-            scrollOffset = Math.max(0, Math.min(scrollOffset, maxScrollOffset));
-            layoutSettingComponents();
-            return true;
+    private FlexContainer createSettingDescription(Setting<?> setting) {
+        FlexContainer left = new FlexContainer(uiSystem, 0, 0, 100, ROW_H)
+                .addClass(StyleKey.FLEX_COLUMN, StyleKey.JUSTIFY_CENTER, StyleKey.GAP_1, StyleKey.FLEX_GROW_2);
+        left.addChild(new LabelItem(uiSystem, 0, 0,
+                new TextComponent(setting.getName()).color(Theme.FOREGROUND)));
+        String desc = setting.getDescription();
+        if (desc != null && !desc.isEmpty()) {
+            left.addChild(new LabelItem(uiSystem, 0, 0,
+                    new TextComponent(desc).color(ColorUtils.NamedColor.GRAY.toInt()).italic()));
         }
-        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        return left;
     }
 
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (this.getFocused() == null && keyCode == 256) {
-            this.close();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+    private FlexContainer createSettingControl(Setting<?> setting) {
+        BaseItem control = createItemForSetting(setting);
+        control.setWidth(240);
+        control.setHeight(28);
+        FlexContainer right = new FlexContainer(uiSystem, 0, 0, 260, ROW_H)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_END, StyleKey.ITEMS_CENTER);
+        right.addChild(control);
+        return right;
     }
 
-    @Override
-    public boolean charTyped(char chr, int modifiers) {
-        return super.charTyped(chr, modifiers);
-    }
-
-    @Override
-    public void close() {
-        saveSettings();
-        assert this.client != null;
-        this.client.setScreen(parentScreen);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private BaseItem createItemForSetting(Setting<?> setting) {
+        return switch (setting) {
+            case BooleanSetting bs ->
+                    new BooleanSettingItem(uiSystem, 0, 0, 60, 28, bs, this);
+            case DoubleSetting ds ->
+                    new DoubleSettingItem(uiSystem, 0, 0, 240, 28, ds, this);
+            case EnumSetting<?> es ->
+                    new EnumSettingItem(uiSystem, 0, 0, 240, 28,  es, this);
+            case ListSetting<?> ls ->
+                    new ListSettingItem(uiSystem, 0, 0, 240, 28,  ls, this);
+            case ColorSetting cs ->
+                    new ColorSettingItem(uiSystem, 0, 0, 240, 28, cs, this);
+            case StringSetting ss ->
+                    new StringSettingItem(uiSystem, 0, 0, 260, 28, ss, this);
+            default ->
+                    new ButtonItem(uiSystem, 0, 0, 160, 24,
+                            new TextComponent("Unsupported").color(0xFFAAAAAA))
+                            .backgroundColor(Theme.SECONDARY)
+                            .setEnabled(false);
+        };
     }
 
     private void saveSettings() {
         settingsModule.onSettingsChanged();
         module.save();
-        Main.OVERLAY_MANAGER.getLoggerOverlay().success((isDarkMode ? "🌙 " : "🍉 ") + "Settings saved for " + module.getName(), true);
+        String message = (darkMode ? "🌙 " : "🍉 ") + "Settings saved for " + module.getName();
+        Main.OVERLAY_MANAGER.getLoggerOverlay().success(message, true);
     }
 
     private void resetSettings() {
         if (selectedGroup != null) {
-            for (Setting<?> setting : selectedGroup.getSettings()) {
-                setting.reset();
+            for (Setting<?> s : selectedGroup.getSettings()) {
+                s.reset();
             }
-
-            updateSettingComponents();
-            Main.OVERLAY_MANAGER.getLoggerOverlay().info((isDarkMode ? "🌙 " : "🍉 ") + "Settings reset for " + selectedGroup.getName(), false);
+            rebuildSettingsList();
+            String message = (darkMode ? "🌙 " : "🍉 ") + "Settings reset for " + selectedGroup.getName();
+            Main.OVERLAY_MANAGER.getLoggerOverlay().info(message, false);
         }
     }
 
     @Override
-    public void resize(MinecraftClient client, int width, int height) {
-        super.resize(client, width, height);
-        updateSettingComponents();
-    }
-
-    private static class SettingsGroupTab {
-        final SettingsGroup group;
-        final String name;
-        int y;
-        SettingsGroupTab(SettingsGroup group, String name) {
-            this.group = group;
-            this.name = name;
-        }
-    }
-
-    protected void renderHeader(DrawContext context, int mouseX, int mouseY, float delta) {
-        DrawingUtils.drawGradient(context, 0, 0, width, headerHeight, getAccentColor(), getAccentHoverColor());
-        renderHeaderDecorations(context, 0, width, headerHeight, 0.3f);
-
-        String moduleIcon = isDarkMode ? "🌙" : "🍉";
-        String moduleTitle = moduleIcon + " " + module.getName();
-        context.drawCenteredTextWithShadow(textRenderer, moduleTitle, width / 2, headerHeight / 2 - 12, isDarkMode ? DARK_TEXT_PRIMARY : WATERMELON_WHITE);
-
-        String status = module.isEnabled() ? "✅ ACTIVATED" : "❌ DEACTIVATED";
-        int statusColor = module.isEnabled() ? (isDarkMode ? DARK_TEXT_SECONDARY : WATERMELON_LIGHT_GREEN) : (isDarkMode ? DARK_TEXT_MUTED : 0xFFFFCCCC);
-        context.drawCenteredTextWithShadow(textRenderer, status, width / 2, headerHeight / 2 + 4, statusColor);
-        context.fill(0, headerHeight - 3, width, headerHeight, getAccentHoverColor());
-    }
-
-    private void renderContentBackground(DrawContext context) {
-        if (isDarkMode) {
-            DrawingUtils.drawGradient(context, 0, headerHeight, width, height - footerHeight - headerHeight, DARK_BG_PRIMARY, DARK_BG_SECONDARY);
-            renderFloatingStars(context);
-        } else {
-            DrawingUtils.drawGradient(context, 0, headerHeight, width, height - footerHeight - headerHeight, WATERMELON_WHITE, WATERMELON_LIGHT_GREEN);
-            renderFloatingSeeds(context);
-        }
-    }
-
-    private void renderFloatingStars(DrawContext context) {
-        for (int i = 0; i < 12; i++) {
-            double x = (Math.sin(animationTime * 0.0008 + i) * 150 + width / 2.0) % width;
-            double y = (Math.cos(animationTime * 0.0006 + i * 1.5) * 80 + (height / 2.0)) % (height - headerHeight - footerHeight) + headerHeight;
-            float alpha = (float) (Math.sin(animationTime * 0.001 + i) * 0.3 + 0.4);
-            int alphaInt = (int) (alpha * 255) << 24;
-            context.fill((int) x, (int) y, (int) x + 3, (int) y + 3, alphaInt | (DARK_ACCENT & 0xFFFFFF));
-        }
-    }
-
-    private void renderFloatingSeeds(DrawContext context) {
-        for (int i = 0; i < 15; i++) {
-            double x = (Math.sin(animationTime * 0.0008 + i) * 150 + width / 2.0) % width;
-            double y = (Math.cos(animationTime * 0.0006 + i * 1.5) * 80 + (height / 2.0)) % (height - headerHeight - footerHeight) + headerHeight;
-            float alpha = (float) (Math.sin(animationTime * 0.001 + i) * 0.2 + 0.3);
-            int alphaInt = (int) (alpha * 255) << 24;
-            context.fill((int) x, (int) y, (int) x + 4, (int) y + 6, alphaInt | (WATERMELON_BLACK & 0xFFFFFF));
-        }
-    }
-
-    private void renderHeaderDecorations(DrawContext context, int y, int width, int height, float density) {
-        int decorCount = (int) (width * height * density / 10000);
-        for (int i = 0; i < decorCount; i++) {
-            int decorX = (i * 47) % width;
-            int decorY = y + (i * 31) % height;
-            if (isDarkMode) {
-                context.fill(decorX, decorY, decorX + 2, decorY + 3, 0x40FFFFFF);
-            } else {
-                context.fill(decorX, decorY, decorX + 3, decorY + 5, 0x40000000 | WATERMELON_BLACK);
-            }
-        }
-    }
-
-    private void renderSidebar(DrawContext context, int mouseX, int mouseY) {
-        int sidebarX = (int) (-SIDEBAR_WIDTH * (1.0f - sidebarSlideAnimation));
-
-        // Utilisation de DrawingUtils pour la sidebar
-        DrawingUtils.drawGradient(context, sidebarX, headerHeight, SIDEBAR_WIDTH, height - footerHeight - headerHeight, getBgPrimary(), getBgSecondary());
-        context.fill(sidebarX + SIDEBAR_WIDTH - 4, headerHeight, sidebarX + SIDEBAR_WIDTH, height - footerHeight, getAccentColor());
-
-        renderModuleInfo(context, sidebarX);
-        renderGroupTabs(context, sidebarX, mouseX, mouseY);
-    }
-
-    private void renderModuleInfo(DrawContext context, int sidebarX) {
-        ModuleInfo info = module.getClass().getAnnotation(ModuleInfo.class);
-        renderModuleIcon(context, sidebarX + 15, headerHeight + 20);
-        context.drawText(textRenderer, module.getName(), sidebarX + 60, headerHeight + 25, getTextPrimary(), false);
-
-        String statusText = module.isEnabled() ? "🟢 Activated" : "🔴 Deactivated";
-        int statusColor = module.isEnabled() ? getSuccessColor() : getErrorColor();
-        context.drawText(textRenderer, statusText, sidebarX + 60, headerHeight + 40, statusColor, false);
-
-        if (moduleKeybindComponent == null) {
-            moduleKeybindComponent = new ModuleKeybindComponent(module, sidebarX + 150, headerHeight + 40, 80, 20, isDarkMode);
-            this.addSelectableChild(moduleKeybindComponent);
-        } else {
-            moduleKeybindComponent.setX(sidebarX + 150);
-            moduleKeybindComponent.setY(headerHeight + 37);
-        }
-
-        if (moduleKeybindComponent != null) {
-            moduleKeybindComponent.render(context, -1, -1, 0);
-        }
-
-        context.fill(sidebarX + 15, headerHeight + 65, sidebarX + SIDEBAR_WIDTH - 15, headerHeight + 67, getAccentColor());
-
-        if (info != null) {
-            context.drawText(textRenderer, "🏷️ v" + info.version(), sidebarX + 15, height - footerHeight - 50, getTextMuted(), false);
-            if (info.authors().length > 0) {
-                context.drawText(textRenderer, "👤 " + info.authors()[0], sidebarX + 15, height - footerHeight - 35, getTextMuted(), false);
-            }
-            context.drawText(textRenderer, "📂 " + info.category().getDisplayName(), sidebarX + 15, height - footerHeight - 20, getTextMuted(), false);
-        }
-    }
-
-    private void renderModuleIcon(DrawContext context, int x, int y) {
-        if (isDarkMode) {
-            DrawingUtils.drawRoundedRect(context, x, y, 32, 32, 6, DARK_ACCENT);
-            DrawingUtils.drawRoundedRect(context, x + 3, y + 3, 26, 26, 4, DARK_BG_TERTIARY);
-            DrawingUtils.drawRoundedRect(context, x + 6, y + 6, 20, 20, 2, DARK_BG_SECONDARY);
-            context.fill(x + 12, y + 10, x + 14, y + 14, DARK_TEXT_PRIMARY);
-            context.fill(x + 20, y + 12, x + 22, y + 16, DARK_TEXT_PRIMARY);
-            context.fill(x + 16, y + 20, x + 18, y + 24, DARK_TEXT_PRIMARY);
-        } else {
-            DrawingUtils.drawRoundedRect(context, x, y, 32, 32, 6, WATERMELON_GREEN);
-            DrawingUtils.drawRoundedRect(context, x + 3, y + 3, 26, 26, 4, WATERMELON_WHITE);
-            DrawingUtils.drawRoundedRect(context, x + 6, y + 6, 20, 20, 2, WATERMELON_PINK);
-            context.fill(x + 12, y + 10, x + 14, y + 14, WATERMELON_BLACK);
-            context.fill(x + 20, y + 12, x + 22, y + 16, WATERMELON_BLACK);
-            context.fill(x + 16, y + 20, x + 18, y + 24, WATERMELON_BLACK);
-        }
-
-        String letter = module.getName().substring(0, 1).toUpperCase();
-        int letterWidth = textRenderer.getWidth(letter);
-        int letterColor = isDarkMode ? DARK_TEXT_PRIMARY : WATERMELON_WHITE;
-        context.drawText(textRenderer, letter, x + 16 - letterWidth / 2, y + 12, letterColor, false);
-    }
-
-    private void renderGroupTabs(DrawContext context, int sidebarX, int mouseX, int mouseY) {
-        String groupTitle = isDarkMode ? "🌙 Groups of settings" : "🍉 Groups of settings";
-        context.drawText(textRenderer, groupTitle, sidebarX + 15, headerHeight + 85, getTextPrimary(), false);
-
-        int y = headerHeight + 110;
-        for (SettingsGroupTab tab : groupTabs) {
-            boolean selected = tab.group == selectedGroup;
-            boolean hovered = DrawingUtils.isPointInRect(mouseX, mouseY, sidebarX + 10, y, SIDEBAR_WIDTH - 20, 35);
-            renderGroupTab(context, tab, sidebarX + 10, y, selected, hovered);
-            tab.y = y;
-            y += 40;
-        }
-    }
-
-    private void renderGroupTab(DrawContext context, SettingsGroupTab tab, int x, int y, boolean selected, boolean hovered) {
-        int bgColor;
-        if (selected) {
-            bgColor = getAccentColor() | 0xDD000000;
-        } else if (hovered) {
-            bgColor = getBgTertiary() | 0x80000000;
-        } else {
-            bgColor = isDarkMode ? 0x30FFFFFF : 0x20000000;
-        }
-
-        // Utilisation de DrawingUtils pour les onglets
-        DrawingUtils.drawRoundedRect(context, x, y, 240, 35, 6, bgColor);
-
-        if (selected) {
-            int indicatorColor = isDarkMode ? DARK_TEXT_PRIMARY : WATERMELON_WHITE;
-            context.fill(x + 5, y + 35 / 2 - 4, x + 9, y + 35 / 2 + 4, indicatorColor);
-        }
-
-        int textColor = selected ? (isDarkMode ? DARK_TEXT_PRIMARY : WATERMELON_WHITE) : getTextPrimary();
-        context.drawText(textRenderer, tab.name, x + 15, y + 35 / 2 - 4, textColor, false);
-
-        String countText = "(" + tab.group.getSettings().size() + ")";
-        int countWidth = textRenderer.getWidth(countText);
-        int countColor = selected ? getTextSecondary() : getTextMuted();
-        context.drawText(textRenderer, countText, x + 240 - countWidth - 8, y + 35 / 2 - 4, countColor, false);
-    }
-
-    private void renderScrollbar(DrawContext context) {
-        if (maxScrollOffset <= 0) return;
-
-        int scrollbarX = width - 15;
-        int scrollbarY = headerHeight + 70;
-        int scrollbarHeight = height - headerHeight - footerHeight - 70;
-
-        // Utilisation de DrawingUtils pour la scrollbar
-        int trackColor = isDarkMode ? 0x40FFFFFF : 0x40000000;
-        DrawingUtils.drawRoundedRect(context, scrollbarX, scrollbarY, 10, scrollbarHeight, 5, trackColor | getAccentColor());
-
-        double handleHeight = Math.max(20, scrollbarHeight * (double) (height - headerHeight - footerHeight - 70) / (maxScrollOffset + height - headerHeight - footerHeight - 70));
-        double handleY = scrollbarY + (scrollOffset / maxScrollOffset) * (scrollbarHeight - handleHeight);
-
-        DrawingUtils.drawRoundedRect(context, scrollbarX + 1, (int) handleY, 8, (int) handleHeight, 4, getAccentColor());
-
-        if (!isDarkMode) {
-            context.fill(scrollbarX + 3, (int) handleY + 5, scrollbarX + 5, (int) handleY + 8, WATERMELON_BLACK);
-            context.fill(scrollbarX + 6, (int) handleY + 10, scrollbarX + 8, (int) handleY + 13, WATERMELON_BLACK);
-        }
+    public void close() {
+        saveSettings();
+        MinecraftClient.getInstance().setScreen(prev);
     }
 
     @Override
-    protected void renderFooter(DrawContext context, int mouseX, int mouseY, float delta) {
-        DrawingUtils.drawGradient(context, 0, height - footerHeight, width, footerHeight, getAccentHoverColor(), getAccentColor());
-        renderHeaderDecorations(context, height - footerHeight, width, footerHeight, 0.2f);
-
-        String footerIcon = isDarkMode ? "🌙" : "🍉";
-        String footerText = footerIcon + " Settings of " + module.getName() + " - " + (selectedGroup != null ? selectedGroup.getSettings().size() + " settings" : "");
-        int footerTextColor = isDarkMode ? DARK_TEXT_PRIMARY : WATERMELON_WHITE;
-        context.drawCenteredTextWithShadow(textRenderer, footerText, width / 2, height - footerHeight / 2 - 4, footerTextColor);
+    public int getBgPrimary() {
+        return darkMode ? 0xFF1A1A1A : 0xFFF8F9FA;
     }
 
     @Override
-    protected void renderOverridElements(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderSettingTooltip(context, mouseX, mouseY);
+    public int getBgSecondary() {
+        return darkMode ? 0xFF2D2D30 : 0xFFE8F8E8;
     }
 
-    private void renderSettingTooltip(DrawContext context, int mouseX, int mouseY) {
-        for (SettingComponent component : settingComponents) {
-            int settingY = component.getY() - (SETTING_HEIGHT - CONTROL_HEIGHT) / 2;
-            if(DrawingUtils.isPointInRect(mouseX, mouseY, SIDEBAR_WIDTH, settingY, width - SIDEBAR_WIDTH, SETTING_HEIGHT)) {
-                if(!component.getSetting().getDescription().isEmpty()) {
-                    renderTooltip(context, List.of(component.getSetting().getDescription().split("\n")), mouseX, mouseY);
-                    return;
-                }
-            }
-        }
+    @Override
+    public int getAccentColor() {
+        return darkMode ? 0xFF007ACC : 0xFF2ECC71;
     }
 
-    private void renderTooltip(DrawContext context, List<String> lines, int mouseX, int mouseY) {
-        if (lines.isEmpty()) return;
-
-        String tooltipIcon = isDarkMode ? "🌙" : "🍉";
-        int iconWidth = textRenderer.getWidth(tooltipIcon + " ");
-        int maxTextWidth = lines.stream().mapToInt(textRenderer::getWidth).max().orElse(0);
-        int tooltipWidth = iconWidth + maxTextWidth + 20;
-        int tooltipHeight = lines.size() * 12 + 12;
-
-        int tooltipX = mouseX + 12;
-        int tooltipY = mouseY - tooltipHeight - 12;
-        if (tooltipX + tooltipWidth > width) {
-            tooltipX = mouseX - tooltipWidth - 12;
-        }
-        if (tooltipY < 0) {
-            tooltipY = mouseY + 12;
-        }
-
-        int tooltipBg = isDarkMode ? (0xF0000000 | DARK_BG_TERTIARY) : (0xF0000000 | WATERMELON_WHITE);
-
-        DrawingUtils.drawPanel(context, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 6, tooltipBg, getAccentColor(), 1);
-
-        context.drawText(textRenderer, tooltipIcon, tooltipX + 5, tooltipY + 5, getAccentColor(), false);
-        for (int i = 0; i < lines.size(); i++) {
-            context.drawText(textRenderer, lines.get(i), tooltipX + iconWidth + 5, tooltipY + 8 + i * 12, getTextPrimary(), false);
-        }
+    @Override
+    public int getAccentHoverColor() {
+        return darkMode ? 0xFF005A9E : 0xFF27AE60;
     }
 
-    private void updateAnimations(float delta) {
-        if (sidebarSlideAnimation < 1.0f) {
-            sidebarSlideAnimation += delta * 3.0f;
-            sidebarSlideAnimation = Math.min(1.0f, sidebarSlideAnimation);
-        }
+    @Override
+    public int getTextPrimary() {
+        return darkMode ? 0xFFFFFFFF : 0xFF2C3E50;
     }
 
+    @Override
+    public int getTextSecondary() {
+        return darkMode ? 0xFFCCCCCC : 0xFF666666;
+    }
+
+    @Override
+    public int getTextMuted() {
+        return darkMode ? 0xFF999999 : 0xFF888888;
+    }
+
+    @Override
     public boolean isDarkMode() {
-        return isDarkMode;
+        return darkMode;
+    }
+
+    @Override
+    protected void resizeEvent() {
+        layoutContent();
     }
 }

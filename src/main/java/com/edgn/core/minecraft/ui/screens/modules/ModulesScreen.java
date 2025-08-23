@@ -28,16 +28,17 @@ import java.util.*;
 public final class ModulesScreen extends BaseTemplate {
 
     private static final class Theme {
-        static final int BACKGROUND   = ColorUtils.setOpacity(0xFF0F1115, 0.80f); // content (principal)
-        static final int SURFACE      = 0xFF111113; // header/footer (principal)
-        static final int FOREGROUND   = 0xFFE5E7EB;
-        static final int INPUT        = 0xFF18181B;
-        static final int CARD         = 0xFF111113;
-        static final int SECONDARY    = 0xFF27272A;
-        static final int SECONDARY_FG = 0xFFE5E7EB;
-        static final int PRIMARY      = 0xFFA78BFA;
-        static final int PRIMARY_FG   = 0xFF0B0B0F;
-        static final int BORDER       = 0xFF2A2A2E;
+        private Theme() { /* utility class */}
+        public static final int BACKGROUND   = ColorUtils.setOpacity(0xFF0F1115, 0.80f); // content (principal)
+        public static final int SURFACE      = 0xFF111113; // header/footer (principal)
+        public static final int FOREGROUND   = 0xFFE5E7EB;
+        public static final int INPUT        = 0xFF18181B;
+        public static final int CARD         = 0xFF111113;
+        public static final int SECONDARY    = 0xFF27272A;
+        public static final int SECONDARY_FG = 0xFFE5E7EB;
+        public static final int PRIMARY      = 0xFFA78BFA;
+        public static final int PRIMARY_FG   = 0xFF0B0B0F;
+        public static final int BORDER       = 0xFF2A2A2E;
     }
 
     private String searchQuery;
@@ -83,7 +84,6 @@ public final class ModulesScreen extends BaseTemplate {
         FlexContainer header = new FlexContainer(uiSystem, 0, 0, width, headerHeight)
                 .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_START, StyleKey.ITEMS_CENTER, StyleKey.SHADOW_MD, StyleKey.PB_1, StyleKey.PT_4);
 
-        // BG uniquement sur le container principal
         header.setBackgroundColor(Theme.SURFACE).setRenderBackground(true);
 
         header.addChild(new LabelItem(uiSystem, 0, 0,
@@ -240,12 +240,11 @@ public final class ModulesScreen extends BaseTemplate {
 
         String q = (searchQuery == null ? "" : searchQuery).toLowerCase(Locale.ROOT).trim();
         if (!q.isEmpty()) {
-            String qf = q;
             modules = modules.stream().filter(m -> {
                 ModuleInfo i = m.getClass().getAnnotation(ModuleInfo.class);
                 String name = m.getName().toLowerCase(Locale.ROOT);
                 String desc = (i != null && i.description() != null) ? i.description().toLowerCase(Locale.ROOT) : "";
-                return name.contains(qf) || desc.contains(qf);
+                return name.contains(q) || desc.contains(q);
             }).toList();
         }
 
