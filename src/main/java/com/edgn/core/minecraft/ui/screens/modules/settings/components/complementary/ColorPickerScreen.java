@@ -76,7 +76,16 @@ public class ColorPickerScreen extends BaseTemplate {
 
     @Override
     protected BaseContainer createHeader() {
-        return null;
+        FlexContainer flex = new FlexContainer(uiSystem, 0, 0, this.width, this.headerHeight)
+                .setRenderBackground(true)
+                .setBackgroundColor(Theme.BG_MAIN)
+                .addClass(StyleKey.GAP_2, StyleKey.PT_5)
+                .setZIndex(ZIndex.Layer.OVERLAY, 0);
+
+        LabelItem labelItem = new LabelItem(uiSystem, 0, 0, 0, 0, "Color Picker").align(TextComponent.TextAlign.CENTER)
+                .addClass(StyleKey.FLEX_BASIS_100);
+
+        return flex.addChild(labelItem);
     }
 
     @Override

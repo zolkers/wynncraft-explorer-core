@@ -17,6 +17,9 @@ public class FlexContainer extends BaseContainer {
     private record ItemBox(UIElement node, int basis, int withMargins, int mStart, int mEnd, int mCrossStart, int mCrossEnd) {}
     private record Justify(int leading, int between) {}
 
+    private int lastContentW = Integer.MIN_VALUE;
+    private int lastContentH = Integer.MIN_VALUE;
+
     private boolean uniformScaleEnabled = true;
 
     public FlexContainer(UIStyleSystem styleSystem, int x, int y, int w, int h) {
@@ -24,8 +27,8 @@ public class FlexContainer extends BaseContainer {
         addClass(StyleKey.FLEX_ROW, StyleKey.FLEX_WRAP, StyleKey.JUSTIFY_START, StyleKey.ITEMS_START);
     }
 
-    @Override
     public void render(DrawContext context) {
+        updateConstraints();
         renderBackground(context);
 
         layoutChildren();
