@@ -41,11 +41,11 @@ public final class MainScreen extends BaseTemplate {
     @Override
     protected BaseContainer createContent() {
         FlexContainer content = new FlexContainer(uiSystem, 0, 0, width, contentHeight)
-                .addClass(StyleKey.FLEX_COLUMN, StyleKey.JUSTIFY_CENTER, StyleKey.ITEMS_CENTER, StyleKey.P_4, StyleKey.GAP_4)
+                .addClass(StyleKey.FLEX_COLUMN, StyleKey.JUSTIFY_CENTER, StyleKey.ITEMS_CENTER, StyleKey.P_5, StyleKey.GAP_8)
                 .setRenderBackground(true)
                 .setBackgroundColor(ColorUtils.setOpacity(0xFF0A0C11, 0.60f));
 
-        featureList = new ListContainer(uiSystem, 0, 0, Math.min(680, width - 40), contentHeight - 40)
+        featureList = new ListContainer(uiSystem, 0, 0, Math.min(680, width - 40), contentHeight)
                 .setOrientation(ListContainer.Orientation.VERTICAL)
                 .setScrollable(true)
                 .setScrollAxes(true, false)
@@ -104,11 +104,6 @@ public final class MainScreen extends BaseTemplate {
         } catch (Exception e) {
             Main.LOGGER.error("Error while navigating: {} ", e.getMessage());
         }
-    }
-
-    @Override
-    protected void resizeEvent() {
-        featureList.setHeight(contentHeight - 40); // bugged gotta figure out why later I shouldn't have to do this usually
     }
 
     @Override
