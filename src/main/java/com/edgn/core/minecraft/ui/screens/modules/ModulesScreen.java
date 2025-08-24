@@ -147,6 +147,7 @@ public final class ModulesScreen extends BaseTemplate {
                 .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_START, StyleKey.ITEMS_CENTER, StyleKey.SHADOW_MD);
     }
 
+    //maybe gotta rework this as it's not perfectly coded but it's not too bad and quite safe to do
     private void layoutContent() {
         if (rootContent == null) return;
 

@@ -69,7 +69,7 @@ public class ListEditScreen<T> extends BaseTemplate {
     @Override
     protected BaseContainer createHeader() {
         var container = new FlexContainer(uiSystem, 0, 0, this.width, footerHeight)
-                .setRenderBackground(true).setBackgroundColor(Theme.SURFACE).addClass(StyleKey.PT_3);
+                .setRenderBackground(true).setBackgroundColor(Theme.SURFACE).addClass(StyleKey.PT_5);
 
         LabelItem labelItem = new LabelItem(uiSystem, 0, 0, 0, 0,
                 new TextComponent(setting.getName())).align(TextComponent.TextAlign.CENTER)
@@ -176,7 +176,7 @@ public class ListEditScreen<T> extends BaseTemplate {
                     .onClick(() -> startEdit(idx));
 
             ButtonItem del = new ButtonItem(uiSystem, 0, 0, 40, 28,
-                    new TextComponent("×").color(0xFFFFFFFF))
+                    new TextComponent("Delete").color(0xFFFFFFFF))
                     .backgroundColor(Theme.DANGER)
                     .addClass(StyleKey.ROUNDED_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_20)
                     .onClick(() -> removeAt(idx));

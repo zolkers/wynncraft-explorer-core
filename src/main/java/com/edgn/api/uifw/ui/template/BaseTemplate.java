@@ -244,7 +244,7 @@ public abstract class BaseTemplate extends EventTemplate {
         super.renderBackground(context, mouseX, mouseY, delta);
     }
 
-    private void updateScreenValues() {
+    protected void updateScreenValues() {
         if(settings.hasHeader()) {
             this.headerHeight = Math.max(30, this.height / 15);
         } else { this.headerHeight = 0; }
@@ -276,4 +276,8 @@ public abstract class BaseTemplate extends EventTemplate {
     public int getHeaderHeight() { return headerHeight; }
     public int getFooterHeight() { return footerHeight; }
     public int getContentHeight() { return contentHeight; }
+
+    protected void debug() {
+        Main.LOGGER.info("Header {}  content {}  footer {}", headerHeight, contentHeight, footerHeight);
+    }
 }

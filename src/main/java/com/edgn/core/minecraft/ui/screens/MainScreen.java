@@ -23,11 +23,14 @@ public final class MainScreen extends BaseTemplate {
         super(Text.of("Wynncraft Explorer"), null);
     }
 
-    private ListContainer featureList;
-
     @Override
     protected TemplateSettings templateSettings() {
         return new TemplateSettings().setFooter(true).setHeader(true);
+    }
+
+    @Override
+    protected void initialise() {
+        debug();
     }
 
     @Override
@@ -40,12 +43,9 @@ public final class MainScreen extends BaseTemplate {
 
     @Override
     protected BaseContainer createContent() {
-        FlexContainer content = new FlexContainer(uiSystem, 0, 0, width, contentHeight)
-                .addClass(StyleKey.FLEX_COLUMN, StyleKey.JUSTIFY_CENTER, StyleKey.ITEMS_CENTER, StyleKey.P_5, StyleKey.GAP_8)
-                .setRenderBackground(true)
-                .setBackgroundColor(ColorUtils.setOpacity(0xFF0A0C11, 0.60f));
+        ListContainer featureList;
 
-        featureList = new ListContainer(uiSystem, 0, 0, Math.min(680, width - 40), contentHeight)
+        featureList = new ListContainer(uiSystem, 0, 0, this.width, contentHeight)
                 .setOrientation(ListContainer.Orientation.VERTICAL)
                 .setScrollable(true)
                 .setScrollAxes(true, false)
@@ -53,12 +53,10 @@ public final class MainScreen extends BaseTemplate {
                 .setScrollStep(3)
                 .addClass(StyleKey.ROUNDED_XL, StyleKey.SHADOW_LG, StyleKey.P_5, StyleKey.GAP_4)
                 .setRenderBackground(true)
-                .setBackgroundColor(0xFF141925);
-
+                .setBackgroundColor(ColorUtils.setOpacity(0xFF141925, 0.80f));
 
         addFeatures(featureList);
-        content.addChild(featureList);
-        return content;
+        return featureList;
     }
 
     @Override
@@ -96,6 +94,11 @@ public final class MainScreen extends BaseTemplate {
             if (e.openScreen != null) item.onClick(() -> navigateTo(e.openScreen.get()));
             list.addChild(item);
         }
+    }
+
+    @Override
+    protected void resizeEvent() {
+        super.reflowLayout();
     }
 
     private void navigateTo(Screen screen) {

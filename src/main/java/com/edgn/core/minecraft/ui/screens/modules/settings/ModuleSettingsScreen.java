@@ -187,6 +187,7 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
         return footer;
     }
 
+    //maybe gotta rework this as it's not perfectly coded but it's not too bad and quite safe to do
     private void layoutContent() {
         if (rootContent == null) return;
         int usableX = PADDING;
