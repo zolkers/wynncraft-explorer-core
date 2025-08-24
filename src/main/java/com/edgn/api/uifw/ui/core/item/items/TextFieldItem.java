@@ -211,7 +211,7 @@ public class TextFieldItem extends AbstractTextItem<TextFieldItem> {
     }
 
     public TextFieldItem setBackgroundColor(int argb) {
-        getComputedStyles().setBackgroundColor(argb);
+        this.bg = argb;
         return this;
     }
 

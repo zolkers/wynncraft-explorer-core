@@ -19,6 +19,7 @@ public abstract class AbstractTextItem<T extends AbstractTextItem<T>> extends Ba
     protected final TextInputModel model = new DefaultTextInputModel();
     protected TextComponent textComponent;
     protected TextComponent placeholderComponent;
+    protected int bg = 0;
     protected int textSafetyMargin = 8;
     protected long lastBlink = System.currentTimeMillis();
     protected boolean caretVisible = true;
@@ -208,17 +209,17 @@ public abstract class AbstractTextItem<T extends AbstractTextItem<T>> extends Ba
     }
 
     private void renderBackground(DrawContext context, int cx, int cy, int cw, int ch) {
-        int baseBg = getBgColor();
-        int bg = backgroundForState(baseBg);
+        int baseBg = this.bg;
+        int bgc = backgroundForState(baseBg);
         int radius = getBorderRadius();
         Shadow shadow = getShadow();
 
         if (shadow != null)
             DrawingUtils.drawShadow(context, cx, cy, cw, ch, 2, 2, shadow.color);
-        DrawingUtils.drawRoundedRect(context, cx, cy, cw, ch, radius, bg);
+        DrawingUtils.drawRoundedRect(context, cx, cy, cw, ch, radius, bgc);
 
         if (isFocused() && hasClass(StyleKey.FOCUS_RING)) {
-            int focusColor = brightenColor(bg, 10);
+            int focusColor = brightenColor(bgc, 10);
             DrawingUtils.drawRoundedRectBorder(context, cx - 2, cy - 2, cw + 4, ch + 4, radius + 2, focusColor, 2);
         }
     }

@@ -1,4 +1,4 @@
-package com.edgn.api.uifw.ui.core.item.items.settings;
+package com.edgn.core.minecraft.ui.screens.modules.settings.components.settings;
 
 import com.edgn.api.uifw.ui.core.item.items.SliderItem;
 import com.edgn.api.uifw.ui.core.models.setting.SettingDoubleModel;

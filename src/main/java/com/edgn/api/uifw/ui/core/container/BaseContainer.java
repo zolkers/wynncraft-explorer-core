@@ -34,18 +34,27 @@ public abstract class BaseContainer extends UIElement implements IContainer {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T extends IContainer> T removeChild(UIElement element) {
+        if (element == null) return (T) this;
+
         if (children.remove(element)) {
-            if (element != null) {
-                element.setParent(null);
-                element.markAsNotRendered();
+            element.setParent(null);
+            element.markAsNotRendered();
+
+            if (capturedElement == element) {
+                capturedElement = null;
+                capturedButton = -1;
             }
+
             markConstraintsDirty();
         }
         return (T) this;
     }
 
+
     @Override
+    @SuppressWarnings("unchecked")
     public <T extends IContainer> T clearChildren() {
         for (UIElement child : children) {
             if (child != null) {
@@ -54,6 +63,10 @@ public abstract class BaseContainer extends UIElement implements IContainer {
             }
         }
         children.clear();
+
+        capturedElement = null;
+        capturedButton = -1;
+
         markConstraintsDirty();
         return (T) this;
     }

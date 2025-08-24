@@ -556,6 +556,41 @@ public class DrawingUtils {
         return argb(a, r, g, b);
     }
 
+    /** Convenience: 8px cells, dark UI-friendly colors. */
+    public static void drawCheckerboard(DrawContext ctx, int x, int y, int w, int h) {
+        drawCheckerboard(ctx, x, y, w, h, 8, 0xFF2A2A2E, 0xFF36363B);
+    }
+
+    /**
+     * Draw a checkerboard with custom cell size and colors.
+     * @param ctx  DrawContext
+     * @param x    left
+     * @param y    top
+     * @param w    width (<=0 no-op)
+     * @param h    height (<=0 no-op)
+     * @param cell cell size in px (min 2)
+     * @param light ARGB color for light squares
+     * @param dark  ARGB color for dark squares
+     */
+    public static void drawCheckerboard(
+            DrawContext ctx, int x, int y, int w, int h, int cell, int light, int dark
+    ) {
+        if (w <= 0 || h <= 0) return;
+        cell = Math.max(2, cell);
+
+        final int xEnd = x + w;
+        final int yEnd = y + h;
+
+        for (int yy = y, yi = 0; yy < yEnd; yy += cell, yi++) {
+            final int rh = Math.min(cell, yEnd - yy);
+            for (int xx = x, xi = 0; xx < xEnd; xx += cell, xi++) {
+                final int rw = Math.min(cell, xEnd - xx);
+                final boolean darkCell = ((yi + xi) & 1) == 1;
+                ctx.fill(xx, yy, xx + rw, yy + rh, darkCell ? dark : light);
+            }
+        }
+    }
+
     private static int clamp255(int v) {
         return Math.clamp(v, 0, 255);
     }

@@ -2,6 +2,7 @@ package com.edgn.api.uifw.ui.core.container.containers;
 
 import com.edgn.api.uifw.ui.core.UIElement;
 import com.edgn.api.uifw.ui.core.container.BaseContainer;
+import com.edgn.api.uifw.ui.core.container.IContainer;
 import com.edgn.api.uifw.ui.core.item.items.ScrollbarItem;
 import com.edgn.api.uifw.ui.core.models.scroll.ContainerScrollbarModel;
 import com.edgn.api.uifw.ui.css.UIStyleSystem;
@@ -434,6 +435,24 @@ public class ScrollContainer extends BaseContainer {
         if (horizontalScroll) { scrollX -= (int) Math.round(scrollDelta * scrollStep); used = true; }
         clampScroll();
         return used;
+    }
+
+    @Override
+    public ScrollContainer removeChild(UIElement element) {
+        super.removeChild(element);
+        if (element == captured) {
+            captured = null;
+            capturedButton = -1;
+        }
+        return this;
+    }
+
+    @Override
+    public ScrollContainer clearChildren() {
+        super.clearChildren();
+        captured = null;
+        capturedButton = -1;
+        return this;
     }
 
     @Override

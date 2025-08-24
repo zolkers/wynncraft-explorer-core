@@ -1,11 +1,11 @@
-package com.edgn.api.uifw.ui.core.item.items.settings;
+package com.edgn.core.minecraft.ui.screens.modules.settings.components.settings;
 
 import com.edgn.api.uifw.ui.core.item.items.ButtonItem;
 import com.edgn.api.uifw.ui.css.StyleKey;
 import com.edgn.api.uifw.ui.css.UIStyleSystem;
 import com.edgn.api.uifw.ui.utils.DrawingUtils;
 import com.edgn.core.minecraft.ui.screens.modules.settings.ISettingsScreen;
-import com.edgn.core.minecraft.ui.screens.modules.settings.components.ColorPickerScreen; // même classe que ton composant utilisait
+import com.edgn.core.minecraft.ui.screens.modules.settings.components.complementary.ColorPickerScreen;
 import com.edgn.core.module.settings.ColorSetting;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;

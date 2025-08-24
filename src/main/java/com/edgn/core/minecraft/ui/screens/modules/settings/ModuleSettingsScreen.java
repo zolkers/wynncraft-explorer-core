@@ -8,8 +8,8 @@ import com.edgn.api.uifw.ui.core.container.containers.ListContainer;
 import com.edgn.api.uifw.ui.core.item.BaseItem;
 import com.edgn.api.uifw.ui.core.item.items.ButtonItem;
 import com.edgn.api.uifw.ui.core.item.items.LabelItem;
-import com.edgn.api.uifw.ui.core.item.items.settings.*;
-import com.edgn.api.uifw.ui.core.item.items.settings.ModuleKeybindItem;
+import com.edgn.core.minecraft.ui.screens.modules.settings.components.settings.*;
+import com.edgn.core.minecraft.ui.screens.modules.settings.components.settings.ModuleKeybindItem;
 import com.edgn.api.uifw.ui.css.StyleKey;
 import com.edgn.api.uifw.ui.utils.ColorUtils;
 import com.edgn.api.uifw.ui.template.BaseTemplate;
@@ -61,6 +61,7 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
     private ButtonItem btnBack;
     private ButtonItem btnSave;
     private ButtonItem btnReset;
+    private LabelItem groupTitle;
 
     public ModuleSettingsScreen(Screen prev, ISettingsModule settingsModule, boolean darkMode) {
         super(Text.of((darkMode ? "🌙 " : "🍉 ") + ((AbstractModule) settingsModule).getName() + " - Settings"), prev);
@@ -126,10 +127,13 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
                 .setBackgroundColor(ColorUtils.setOpacity(Theme.BG_MAIN, 0.90f))
                 .setRenderBackground(true)
                 .addClass(StyleKey.FLEX_ROW, StyleKey.GAP_4, StyleKey.P_3);
+
         createSidebar();
         createRightColumn();
+
         rootContent.addChild(sidebar);
         rootContent.addChild(rightCol);
+
         layoutContent();
         rebuildSettingsList();
         return rootContent;
@@ -146,19 +150,27 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
         buildSidebar();
     }
 
-    private void createRightColumn() {
-        rightCol = new FlexContainer(uiSystem, 0, 0, 100, contentHeight)
-                .addClass(StyleKey.FLEX_COLUMN, StyleKey.GAP_3, StyleKey.FLEX_GROW_2);
-        String groupName = (selectedGroup != null ? selectedGroup.getName() : "No group");
-        LabelItem groupTitle = new LabelItem(uiSystem, 0, 0,
-                new TextComponent(groupName).color(Theme.FOREGROUND));
-        settingsList = new ListContainer(uiSystem, 0, 0, 100, contentHeight - 40)
+    private ListContainer newSettingsList() {
+        return new ListContainer(uiSystem, 0, 0, 100, contentHeight - 40)
                 .addClass(StyleKey.GAP_2, StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.P_1, StyleKey.PR_3)
                 .setScrollable(true)
                 .setShowScrollbars(true)
                 .setScrollAxes(true, false)
-                .setScrollStep(18);
-        settingsList.setBackgroundColor(Theme.CARD).setRenderBackground(true);
+                .setScrollStep(18)
+                .setBackgroundColor(Theme.CARD)
+                .setRenderBackground(true);
+    }
+
+    private void createRightColumn() {
+        rightCol = new FlexContainer(uiSystem, 0, 0, 100, contentHeight)
+                .addClass(StyleKey.FLEX_COLUMN, StyleKey.GAP_3, StyleKey.FLEX_GROW_2);
+
+        String groupName = (selectedGroup != null ? selectedGroup.getName() : "No group");
+        groupTitle = new LabelItem(uiSystem, 0, 0,
+                new TextComponent(groupName).color(Theme.FOREGROUND));
+
+        settingsList = newSettingsList();
+
         rightCol.addChild(groupTitle);
         rightCol.addChild(settingsList);
     }
@@ -181,11 +193,13 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
         int usableY = PADDING;
         int usableW = Math.max(0, width - 2 * PADDING);
         int usableH = Math.max(0, contentHeight - PADDING);
+
         sidebar.setX(usableX);
         sidebar.setY(usableY);
         sidebar.setWidth(SIDEBAR_W);
         sidebar.setHeight(usableH);
         sidebar.markConstraintsDirty();
+
         int rightX = usableX + SIDEBAR_W + GAP;
         int rightW = Math.max(0, usableW - SIDEBAR_W - GAP);
         rightCol.setX(rightX);
@@ -193,6 +207,7 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
         rightCol.setWidth(rightW);
         rightCol.setHeight(usableH);
         rightCol.markConstraintsDirty();
+
         settingsList.setX(0);
         settingsList.setY(28);
         settingsList.setWidth(rightW);
@@ -245,11 +260,28 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
     }
 
     private void selectGroup(SettingsGroup group) {
-        if (selectedGroup != group) {
-            selectedGroup = group;
-            rebuildSettingsList();
-            buildSidebar();
+        if (selectedGroup == group) return;
+        selectedGroup = group;
+
+        uiSystem.getEventManager().resetAllElements();
+
+        if (groupTitle != null) {
+            groupTitle.setText(group.getName());
         }
+
+        settingsList = newSettingsList();
+        rightCol.clearChildren();
+        rightCol.addChild(groupTitle);
+        rightCol.addChild(settingsList);
+
+        rebuildSettingsList();
+        buildSidebar();
+
+        layoutContent();
+        settingsList.markConstraintsDirty();
+        rightCol.markConstraintsDirty();
+        sidebar.markConstraintsDirty();
+        rootContent.markConstraintsDirty();
     }
 
     private void rebuildSettingsList() {
@@ -260,6 +292,7 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
                 settingsList.addChild(buildSettingRow(setting));
             }
         }
+        settingsList.markConstraintsDirty();
     }
 
     private BaseContainer buildSettingRow(Setting<?> setting) {
