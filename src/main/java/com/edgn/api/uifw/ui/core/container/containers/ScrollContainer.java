@@ -455,6 +455,17 @@ public class ScrollContainer extends BaseContainer {
         return this;
     }
 
+    public ScrollContainer clearContentChildren() {
+        for (UIElement c : getChildren()) {
+            if (c instanceof ScrollbarItem) continue;
+            removeChild(c);
+        }
+        captured = null;
+        capturedButton = -1;
+        markConstraintsDirty();
+        return this;
+    }
+
     @Override
     public String toString() {
         return String.format("ScrollContainer{scroll=[%d,%d], content=[%d,%d], viewport=[%d,%d,%d,%d], scrollbars=[v=%b, h=%b], children=%d, visibleChildren=%d}",

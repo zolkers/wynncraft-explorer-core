@@ -117,7 +117,7 @@ public abstract class AbstractTextItem<T extends AbstractTextItem<T>> extends Ba
         if (now - lastClickTime < DOUBLE_CLICK_TIME) {
             model.setSelection(model.wordLeft(), model.wordRight());
         } else {
-            model.setSelection(model.getCaret(), model.getCaret());
+            model.clearSelection();
         }
         lastClickTime = now;
 
@@ -312,7 +312,13 @@ public abstract class AbstractTextItem<T extends AbstractTextItem<T>> extends Ba
     @Override public T onClick(Runnable handler) { super.onClick(handler); return self(); }
     @Override public T onMouseEnter(Runnable handler) { super.onMouseEnter(handler); return self(); }
     @Override public T onMouseLeave(Runnable handler) { super.onMouseLeave(handler); return self(); }
-    @Override public T onFocusGained(Runnable handler) { super.onFocusGained(handler); return self(); }
+
+    @Override
+    public void onFocusGained() {
+        super.onFocusGained();
+        model.clearSelection();
+    }
+
     @Override public T onFocusLost(Runnable handler) { super.onFocusLost(handler); return self(); }
     @Override public T setVisible(boolean v) { super.setVisible(v); return self(); }
     @Override public T setEnabled(boolean e) { super.setEnabled(e); return self(); }

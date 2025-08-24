@@ -123,7 +123,7 @@ public class ColorPickerScreen extends BaseTemplate {
         swatchOld = new ColorSwatchItem(uiSystem, 0, 0, 120, 80).setColor(initialColor);
         swatchNew = new ColorSwatchItem(uiSystem, 0, 0, 120, 80).setColor(currentColor());
 
-        hexField = tf("#FFFFFFFF", s -> onHexChanged(s));
+        hexField = tf("#FFFFFFFF", this::onHexChanged);
         rField = tf("0", s -> onRgbChanged());
         gField = tf("0", s -> onRgbChanged());
         bField = tf("0", s -> onRgbChanged());
@@ -140,7 +140,10 @@ public class ColorPickerScreen extends BaseTemplate {
                 new TextComponent("Apply").color(Theme.PRIMARY_FG))
                 .backgroundColor(Theme.PRIMARY)
                 .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN)
-                .onClick(() -> { if (onPick != null) onPick.accept(currentColor()); close(); });
+                .onClick(() -> {
+                    if (onPick != null) onPick.accept(currentColor());
+                    close();
+                });
 
         actionsRow = new FlexContainer(uiSystem, 0, 0, 100, ACTIONS_H)
                 .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_END, StyleKey.GAP_2, StyleKey.ITEMS_CENTER);

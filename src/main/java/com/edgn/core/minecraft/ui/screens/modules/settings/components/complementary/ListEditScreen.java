@@ -8,6 +8,7 @@ import com.edgn.api.uifw.ui.core.item.items.ButtonItem;
 import com.edgn.api.uifw.ui.core.item.items.LabelItem;
 import com.edgn.api.uifw.ui.core.item.items.TextFieldItem;
 import com.edgn.api.uifw.ui.css.StyleKey;
+import com.edgn.api.uifw.ui.layout.ZIndex;
 import com.edgn.api.uifw.ui.template.BaseTemplate;
 import com.edgn.api.uifw.ui.template.TemplateSettings;
 import com.edgn.api.uifw.ui.utils.ColorUtils;
@@ -127,26 +128,31 @@ public class ListEditScreen<T> extends BaseTemplate {
 
     @Override
     protected BaseContainer createFooter() {
-        var flex = new FlexContainer(uiSystem, 0, this.contentHeight, this.width, this.footerHeight).setRenderBackground(true)
-                .setBackgroundColor(Theme.SURFACE).addClass(StyleKey.GAP_2);
+        FlexContainer flex = new FlexContainer(uiSystem, 0, this.contentHeight, this.width, this.footerHeight)
+                .setRenderBackground(true)
+                .setBackgroundColor(Theme.SURFACE)
+                .addClass(StyleKey.GAP_2)
+                .setZIndex(ZIndex.Layer.OVERLAY, 0);
 
         ButtonItem save = new ButtonItem(uiSystem, 0, 0, 140, ACTIONS_H,
                 new TextComponent("Save & Close").color(Theme.PRIMARY_FG))
                 .backgroundColor(Theme.PRIMARY)
                 .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_40)
+                .setZIndex(ZIndex.Layer.OVERLAY, 1)
                 .onClick(this::saveAndClose);
 
         ButtonItem cancel = new ButtonItem(uiSystem, 0, 0, 120, ACTIONS_H,
                 new TextComponent("Cancel").color(Theme.SECONDARY_FG))
                 .backgroundColor(Theme.SECONDARY)
                 .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_40)
+                .setZIndex(ZIndex.Layer.OVERLAY, 1)
                 .onClick(this::close);
 
         return flex.addChild(cancel).addChild(save);
     }
 
     private void rebuildList() {
-        listView.clearChildren();
+        listView.clearContentChildren();
         for (int i = 0; i < temp.size(); i++) {
             final int idx = i;
             String text = asString.apply(temp.get(i));

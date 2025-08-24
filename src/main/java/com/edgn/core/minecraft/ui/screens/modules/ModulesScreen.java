@@ -228,7 +228,7 @@ public final class ModulesScreen extends BaseTemplate {
 
     private void rebuildGrid() {
         if (grid == null) return;
-        grid.clearChildren();
+        grid.clearContentChildren();
 
         List<AbstractModule> modules = new ArrayList<>(ModuleManager.getInstance().getModules());
         if (selectedCategory != null) {
