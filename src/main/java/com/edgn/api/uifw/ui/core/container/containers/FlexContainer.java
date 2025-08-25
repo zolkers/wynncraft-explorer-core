@@ -84,16 +84,30 @@ public class FlexContainer extends BaseContainer {
         int maxMain  = row ? cb.w : cb.h;
         int maxCross = row ? cb.h : cb.w;
 
+        boolean sizeChanged = (lastContentW != cb.w || lastContentH != cb.h);
+        if (sizeChanged) {
+            lastContentW = cb.w;
+            lastContentH = cb.h;
+            for (UIElement child : kids) {
+                if (child.isVisible()) {
+                    child.updateConstraints();
+                }
+            }
+        }
+
         List<Line> lines = measureAndWrap(kids, maxMain, row, ig.gap);
 
         double k = 1.0;
         if (uniformScaleEnabled) {
             k = computeUniformScaleFactor(lines, maxMain, maxCross, ig.gap);
-            ig = scaleInsetsAndGap(ig, k);
-            cb = computeContentBox(ig);
-            maxMain  = row ? cb.w : cb.h;
-            maxCross = row ? cb.h : cb.w;
-            lines = measureAndWrap(kids, maxMain, row, ig.gap);
+
+            if (k < 1.0) {
+                ig = scaleInsetsAndGap(ig, k);
+                cb = computeContentBox(ig);
+                maxMain  = row ? cb.w : cb.h;
+                maxCross = row ? cb.h : cb.w;
+                lines = measureAndWrap(kids, maxMain, row, ig.gap);
+            }
         }
 
         layoutAllLines(lines, cb, maxMain, maxCross, ig.gap, row, k);
@@ -127,11 +141,11 @@ public class FlexContainer extends BaseContainer {
     }
 
     private List<Line> maybeScaleLines(List<Line> lines, double k) {
-        return uniformScaleEnabled ? scaleLinesForUniform(lines, k) : lines;
+        return uniformScaleEnabled && k < 1.0 ? scaleLinesForUniform(lines, k) : lines;
     }
 
     private List<ItemBox> collectMetricsAuto(Line line, int maxMain, boolean row, double k) {
-        return uniformScaleEnabled
+        return uniformScaleEnabled && k < 1.0
                 ? collectMetricsScaled(line.children(), maxMain, row, k)
                 : collectMetrics(line.children(), maxMain, row);
     }
@@ -139,7 +153,7 @@ public class FlexContainer extends BaseContainer {
     private void positionLineAuto(Line line, List<ItemBox> metrics, int[] totals, Justify justify,
                                   int mainStart, int crossCursor, boolean row, int lineCrossSize,
                                   double k, int maxMain) {
-        if (uniformScaleEnabled) {
+        if (uniformScaleEnabled && k < 1.0) {
             positionLineScaled(line, metrics, totals, justify, mainStart, crossCursor, row, lineCrossSize, k, maxMain);
         } else {
             positionLineWithCrossSize(line, metrics, totals, justify, mainStart, crossCursor, row, lineCrossSize, maxMain);
@@ -621,6 +635,19 @@ public class FlexContainer extends BaseContainer {
     public FlexContainer setRenderBackground(boolean enabled) {
         super.setRenderBackground(enabled);
         return this;
+    }
+
+    @Override
+    public void markConstraintsDirty() {
+        if (constraintsDirty) return;
+        super.markConstraintsDirty();
+
+        lastContentW = Integer.MIN_VALUE;
+        lastContentH = Integer.MIN_VALUE;
+
+        for (UIElement child : children) {
+            child.markConstraintsDirty();
+        }
     }
 
 

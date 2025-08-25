@@ -28,6 +28,13 @@ public class ListContainer extends ScrollContainer {
         var kids = getChildren();
         if (kids.isEmpty()) return;
 
+        for (UIElement child : kids) {
+            if (child.isVisible()) {
+                child.markConstraintsDirty();
+                child.updateConstraints();
+            }
+        }
+
         int contentX = getViewportX();
         int contentY = getViewportY();
         int vw = getViewportWidth();
@@ -39,8 +46,14 @@ public class ListContainer extends ScrollContainer {
         } else {
             layoutHorizontal(kids, contentX, contentY, vh, gap);
         }
-    }
 
+        for (UIElement child : kids) {
+            if (child.isVisible()) {
+                child.updateConstraints();
+                child.getInteractionBounds();
+            }
+        }
+    }
 
     private boolean isNotLayoutCandidate(UIElement c) {
         return c == null || !c.isVisible() || c instanceof ScrollbarItem;

@@ -29,12 +29,13 @@ public abstract class BaseContainer extends UIElement implements IContainer {
             element.setParent(this);
             children.add(element);
             markConstraintsDirty();
+
+            invalidateAllInteractionBounds();
         }
         return (T) this;
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <T extends IContainer> T removeChild(UIElement element) {
         if (element == null) return (T) this;
 
@@ -48,8 +49,21 @@ public abstract class BaseContainer extends UIElement implements IContainer {
             }
 
             markConstraintsDirty();
+
+            invalidateAllInteractionBounds();
         }
         return (T) this;
+    }
+
+    private void invalidateAllInteractionBounds() {
+        for (UIElement child : children) {
+            if (child != null) {
+                child.markConstraintsDirty();
+                if (child instanceof BaseContainer) {
+                    ((BaseContainer) child).invalidateAllInteractionBounds();
+                }
+            }
+        }
     }
 
 

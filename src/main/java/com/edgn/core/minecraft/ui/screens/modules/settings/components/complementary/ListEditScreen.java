@@ -186,6 +186,7 @@ public class ListEditScreen<T> extends BaseTemplate {
             listView.addChild(row);
         }
         listView.markConstraintsDirty();
+        listView.updateConstraints();
     }
 
     private void startEdit(int idx) {
