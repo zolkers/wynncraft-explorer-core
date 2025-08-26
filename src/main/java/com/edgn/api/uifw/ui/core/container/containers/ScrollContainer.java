@@ -10,6 +10,8 @@ import com.edgn.api.uifw.ui.layout.LayoutEngine;
 import com.edgn.api.uifw.ui.layout.ZIndex;
 import net.minecraft.client.gui.DrawContext;
 
+import java.util.List;
+
 @SuppressWarnings("unused")
 public class ScrollContainer extends BaseContainer {
 
@@ -66,7 +68,7 @@ public class ScrollContainer extends BaseContainer {
     public boolean isHorizontalScrollEnabled() { return horizontalScroll; }
 
     @Override
-    protected void updateInteractionBounds() {
+    public void updateInteractionBounds() {
         int ix = calculatedX + getPaddingLeft();
         int iy = calculatedY + getPaddingTop();
         int iw = Math.max(0, calculatedWidth  - getPaddingLeft() - getPaddingRight());
@@ -285,7 +287,7 @@ public class ScrollContainer extends BaseContainer {
         performLayoutCycle();
 
         if (updateReservesOnce()) {
-            performLayoutCycle(); // recompute after reserves changed
+            performLayoutCycle();
         }
 
         ensureScrollbars();
@@ -296,8 +298,13 @@ public class ScrollContainer extends BaseContainer {
         layoutChildren();
         computeContentSize();
         clampScroll();
-    }
 
+        for (UIElement child : getChildren()) {
+            if (child != null && child.isVisible()) {
+                child.updateConstraints();
+            }
+        }
+    }
     private boolean isScrollbar(UIElement el) { return (el instanceof ScrollbarItem); }
 
 
@@ -370,15 +377,22 @@ public class ScrollContainer extends BaseContainer {
     public boolean onMouseClick(double mouseX, double mouseY, int button) {
         if (!isInInteractionZone(mouseX, mouseY)) return false;
 
-        // z-order top → bottom
-        java.util.List<UIElement> sorted = LayoutEngine.sortByRenderOrder(getChildren());
+        updateConstraints();
+        updateInteractionBounds();
+
+        List<UIElement> sorted = LayoutEngine.sortByRenderOrder(getChildren());
         for (int i = sorted.size() - 1; i >= 0; i--) {
             UIElement child = sorted.get(i);
             if (child == null || !child.isVisible() || !child.isEnabled() || !child.isRendered()) continue;
 
-            // Test & dispatch en COORDONNÉES MONDE
-            if (!child.canInteract(mouseX, mouseY)) continue;
-            if (child.onMouseClick(mouseX, mouseY, button)) {
+            child.updateConstraints();
+            child.updateInteractionBounds();
+
+            double childMouseX = mouseX + getChildInteractionOffsetX(child);
+            double childMouseY = mouseY + getChildInteractionOffsetY(child);
+
+            if (!child.canInteract(childMouseX, childMouseY)) continue;
+            if (child.onMouseClick(childMouseX, childMouseY, button)) {
                 captured = child;
                 capturedButton = button;
                 return true;
@@ -462,8 +476,27 @@ public class ScrollContainer extends BaseContainer {
         }
         captured = null;
         capturedButton = -1;
+
         markConstraintsDirty();
+        computeContentSize();
+        clampScroll();
+        updateInteractionBounds();
+
         return this;
+    }
+
+    public void forceRefresh() {
+        markConstraintsDirty();
+        updateConstraints();
+        performLayoutCycle();
+        updateInteractionBounds();
+
+        for (UIElement child : getChildren()) {
+            if (child != null) {
+                child.markConstraintsDirty();
+                child.updateConstraints();
+            }
+        }
     }
 
     @Override

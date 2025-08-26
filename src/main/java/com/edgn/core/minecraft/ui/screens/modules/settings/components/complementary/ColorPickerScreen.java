@@ -48,6 +48,10 @@ public class ColorPickerScreen extends BaseTemplate {
     private float alpha;
 
     private FlexContainer root;
+    private FlexContainer colorItemsContainer;
+    private FlexContainer colorContainer;
+    private FlexContainer visualisationContainer;
+
     private SVPadItem svPad;
     private GradientSliderItem hueSlider;
     private GradientSliderItem alphaSlider;
@@ -95,14 +99,14 @@ public class ColorPickerScreen extends BaseTemplate {
                 .setBackgroundColor(ColorUtils.setOpacity(Theme.BG_MAIN, 0.90f))
                 .setRenderBackground(true).addClass(StyleKey.GAP_2, StyleKey.P_2);
 
-        FlexContainer colorItemsContainer = new FlexContainer(uiSystem, 0, 0, width, contentHeight).addClass(StyleKey.FLEX_BASIS_100, StyleKey.GAP_2);
+        colorItemsContainer = new FlexContainer(uiSystem, 0, 0, width, contentHeight).addClass(StyleKey.FLEX_BASIS_100, StyleKey.GAP_2);
         svPad = new SVPadItem(uiSystem, 0, 0, 0, contentHeight)
                 .setHue(hue).setSaturation(sat).setValue(val)
                 .onChange((s, v) -> { sat = s; val = v; syncFromHsva(); })
                 .addClass(StyleKey.FLEX_BASIS_40);
 
-        FlexContainer colorContainer = new FlexContainer(uiSystem,0, 0, 0, contentHeight).addClass(StyleKey.FLEX_BASIS_40, StyleKey.GAP_2);
-        FlexContainer visualisationContainer = new FlexContainer(uiSystem, 0, 0, 0, contentHeight).addClass(StyleKey.P_2, StyleKey.GAP_3);
+        colorContainer = new FlexContainer(uiSystem,0, 0, 0, contentHeight).addClass(StyleKey.FLEX_BASIS_40, StyleKey.GAP_2);
+        visualisationContainer = new FlexContainer(uiSystem, 0, 0, 0, contentHeight).addClass(StyleKey.P_2, StyleKey.GAP_3);
 
         hueSlider = new GradientSliderItem(uiSystem, 0, 0, 280, 60)
                 .withThumbSize(10)
@@ -157,6 +161,7 @@ public class ColorPickerScreen extends BaseTemplate {
         root.addChild(rgba);
 
         syncFromHsva();
+        this.layout();
         return root;
     }
 
@@ -244,6 +249,20 @@ public class ColorPickerScreen extends BaseTemplate {
         float[] hsb = Color.RGBtoHSB(r, g, b, null);
         hue = hsb[0] * 360f; sat = hsb[1]; val = hsb[2]; alpha = a;
         if (svPad != null) svPad.setHue(hue).setSaturation(sat).setValue(val);
+    }
+
+    @Override
+    protected void resizeEvent() {
+        this.layout();
+    }
+
+    private void layout() {
+        if(root != null) {
+            root.setHeight(this.contentHeight);
+        }
+        if(colorItemsContainer != null) {
+            colorItemsContainer.setHeight(this.contentHeight);
+        }
     }
 
     private static float clamp01(float v) { return Math.max(0f, Math.min(1f, v)); }

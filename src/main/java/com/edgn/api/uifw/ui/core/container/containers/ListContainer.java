@@ -31,7 +31,6 @@ public class ListContainer extends ScrollContainer {
         for (UIElement child : kids) {
             if (child.isVisible()) {
                 child.markConstraintsDirty();
-                child.updateConstraints();
             }
         }
 
@@ -50,7 +49,6 @@ public class ListContainer extends ScrollContainer {
         for (UIElement child : kids) {
             if (child.isVisible()) {
                 child.updateConstraints();
-                child.getInteractionBounds();
             }
         }
     }

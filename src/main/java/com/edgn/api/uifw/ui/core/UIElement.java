@@ -115,7 +115,7 @@ public abstract class UIElement implements IElement {
         }
     }
 
-    protected void updateInteractionBounds() {
+    public void updateInteractionBounds() {
         int ox = calculatedX;
         int oy = calculatedY;
         int ow = calculatedWidth;
