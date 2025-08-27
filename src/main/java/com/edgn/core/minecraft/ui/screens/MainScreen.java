@@ -22,7 +22,6 @@ import java.util.List;
 
 public final class MainScreen extends BaseTemplate {
 
-    // Data model for features
     public static class Feature {
         public final String id;
         public final String title;

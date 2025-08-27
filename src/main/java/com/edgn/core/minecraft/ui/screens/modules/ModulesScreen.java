@@ -115,16 +115,21 @@ public final class ModulesScreen extends BaseTemplate {
                         .pulse()
                         .color(ColorUtils.NamedColor.GRAY.toInt())
                         .italic())
-                .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.FLEX_GROW_1)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.FLEX_GROW_1, StyleKey.FLEX_BASIS_60)
                 .setBackgroundColor(Theme.INPUT)
                 .textPulse()
                 .textColor(ColorUtils.NamedColor.WHITE.toInt())
-                .setText(searchQuery);
+                .setText(searchQuery)
+                .onEnter(() -> {
+                            this.searchQuery = searchField.getText();
+                            this.rebuildGrid();
+                        }
+                );
 
         ButtonItem searchBtn = new ButtonItem(uiSystem, 0, 0, 70, 28,
                 new TextComponent("Search").color(Theme.PRIMARY_FG))
                 .backgroundColor(Theme.PRIMARY)
-                .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_10)
                 .onClick(() -> {
                     this.searchQuery = searchField.getText();
                     rebuildGrid();

@@ -48,7 +48,6 @@ public class RaidEventService extends AbstractService
 
     private void detectRaidFromTitle(String titleText) {
         try {
-            Main.OVERLAY_MANAGER.getLoggerOverlay().info("Title: " + titleText, true);
             this.currentRaidType = RaidEnum.getRaidKind(titleText);
             if(currentRaidType == null) return;
 
