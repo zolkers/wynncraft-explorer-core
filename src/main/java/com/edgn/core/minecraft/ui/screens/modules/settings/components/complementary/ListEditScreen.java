@@ -34,18 +34,21 @@ public class ListEditScreen<T> extends BaseTemplate {
         static final int PRIMARY = 0xFFA78BFA;
         static final int PRIMARY_FG = 0xFF0B0B0F;
         static final int DANGER = 0xFFE74C3C;
+        static final int SUCCESS = 0xFF22C55E;
         static final int BORDER = 0xFF2A2A2E;
+        static final int SELECTED = 0xFF3730A3;
     }
-    private static final int ROW_H       = 44;
-    private static final int EDITOR_H    = 36;
-    private static final int ACTIONS_H   = 36;
+
+    private static final int ROW_H = 44;
+    private static final int EDITOR_H = 36;
+    private static final int ACTIONS_H = 36;
 
     private final ListSetting<T> setting;
-    private final List<T> temp = new ArrayList<>();
+    private final List<T> workingCopy = new ArrayList<>();
     private final Function<String, T> parse;
     private final Function<T, String> asString;
 
-    private ListContainer listView;
+    private ListContainer<T> listView;
     private FlexContainer editorRow;
     private TextFieldItem input;
     private ButtonItem addOrUpdateBtn;
@@ -56,7 +59,9 @@ public class ListEditScreen<T> extends BaseTemplate {
     public ListEditScreen(ISettingsScreen parent, ListSetting<T> setting) {
         super(Text.literal("Edit List: " + setting.getName()), (Screen) parent);
         this.setting = setting;
-        if (setting.getValue() != null) temp.addAll(setting.getValue());
+        if (setting.getValue() != null) {
+            workingCopy.addAll(setting.getValue());
+        }
         this.parse = setting.getStringToValueParser();
         this.asString = setting.getValueToStringConverter();
     }
@@ -68,12 +73,15 @@ public class ListEditScreen<T> extends BaseTemplate {
 
     @Override
     protected BaseContainer createHeader() {
-        var container = new FlexContainer(uiSystem, 0, 0, this.width, footerHeight)
-                .setRenderBackground(true).setBackgroundColor(Theme.SURFACE).addClass(StyleKey.PT_5);
+        var container = new FlexContainer(uiSystem, 0, 0, this.width, headerHeight)
+                .setRenderBackground(true)
+                .setBackgroundColor(Theme.SURFACE)
+                .addClass(StyleKey.PT_5, StyleKey.JUSTIFY_CENTER, StyleKey.ITEMS_CENTER);
 
         LabelItem labelItem = new LabelItem(uiSystem, 0, 0, 0, 0,
-                new TextComponent(setting.getName())).align(TextComponent.TextAlign.CENTER)
-                .color(Theme.FOREGROUND)
+                new TextComponent(setting.getName())
+                        .color(Theme.FOREGROUND)
+                        .align(TextComponent.TextAlign.CENTER))
                 .addClass(StyleKey.FLEX_BASIS_100);
 
         return container.addChild(labelItem);
@@ -81,18 +89,37 @@ public class ListEditScreen<T> extends BaseTemplate {
 
     @Override
     protected BaseContainer createContent() {
-        FlexContainer root = new FlexContainer(uiSystem, 0, this.footerHeight, width, contentHeight)
+        FlexContainer root = new FlexContainer(uiSystem, 0, headerHeight, width, contentHeight)
                 .setBackgroundColor(ColorUtils.setOpacity(Theme.BG_MAIN, 0.90f))
-                .setRenderBackground(true);
+                .setRenderBackground(true)
+                .addClass(StyleKey.FLEX_COLUMN, StyleKey.P_2, StyleKey.GAP_2);
 
-        listView = new ListContainer(uiSystem, 0, 0, this.width, contentHeight)
-                .addClass(StyleKey.P_2, StyleKey.GAP_2, StyleKey.FLEX_BASIS_100)
-                .setScrollable(true).setScrollAxes(true, false).setShowScrollbars(true).setScrollStep(10);
-        listView.setRenderBackground(false);
+        listView = new ListContainer<T>(uiSystem, 0, 0, width, contentHeight - EDITOR_H - 16)
+                .setOrientation(ListContainer.Orientation.VERTICAL)
+                .setFixedItemHeight(ROW_H)
+                .setScrollable(true)
+                .setScrollAxes(true, false)
+                .setShowScrollbars(true)
+                .setScrollStep(10)
+                .setSelectionEnabled(false)
+                .setMultiSelection(false)
+                .setItemFactory(this::createListItemElement)
+                .onItemSelect(this::onItemSelect)
+                .addClass(StyleKey.FLEX_GROW_1, StyleKey.FLEX_BASIS_100);
 
+        listView.setItems(workingCopy);
+
+        createEditorRow();
+
+        root.addChild(listView).addChild(editorRow);
+        return root;
+    }
+
+    private void createEditorRow() {
         input = new TextFieldItem(uiSystem, 0, 0, 1, EDITOR_H)
                 .withPlaceholder("Add new item…")
-                .setBackgroundColor(Theme.INPUT).textColor(Theme.FOREGROUND)
+                .setBackgroundColor(Theme.INPUT)
+                .textColor(Theme.FOREGROUND)
                 .addClass(StyleKey.ROUNDED_MD, StyleKey.P_2, StyleKey.FLEX_BASIS_75)
                 .onEnter(this::addOrUpdate);
 
@@ -103,7 +130,7 @@ public class ListEditScreen<T> extends BaseTemplate {
                 .onClick(this::addOrUpdate);
 
         cancelEditBtn = new ButtonItem(uiSystem, 0, 0, 116, EDITOR_H,
-                new TextComponent("Cancel edit").color(Theme.SECONDARY_FG))
+                new TextComponent("Cancel").color(Theme.SECONDARY_FG))
                 .backgroundColor(Theme.SECONDARY)
                 .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_10)
                 .onClick(this::cancelEdit)
@@ -113,87 +140,63 @@ public class ListEditScreen<T> extends BaseTemplate {
                 .addClass(StyleKey.FLEX_ROW, StyleKey.ITEMS_CENTER, StyleKey.GAP_2);
 
         editorRow.addChild(input).addChild(addOrUpdateBtn).addChild(cancelEditBtn);
-
-        root.addChild(listView);
-        root.addChild(editorRow);
-
-        rebuildList();
-        return root;
     }
 
-    @Override
-    protected void resizeEvent() {
-        listView.setHeight(this.contentHeight);
-    }
+    private FlexContainer createListItemElement(T item) {
+        String text = asString.apply(item);
+        int itemIndex = workingCopy.indexOf(item);
 
-    @Override
-    protected BaseContainer createFooter() {
-        FlexContainer flex = new FlexContainer(uiSystem, 0, this.contentHeight, this.width, this.footerHeight)
-                .setRenderBackground(true)
+        FlexContainer row = new FlexContainer(uiSystem, 0, 0, 100, ROW_H)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_BETWEEN, StyleKey.ITEMS_CENTER,
+                        StyleKey.P_2, StyleKey.ROUNDED_MD)
                 .setBackgroundColor(Theme.SURFACE)
-                .addClass(StyleKey.GAP_2)
-                .setZIndex(ZIndex.Layer.OVERLAY, 0);
+                .setRenderBackground(true);
 
-        ButtonItem save = new ButtonItem(uiSystem, 0, 0, 140, ACTIONS_H,
-                new TextComponent("Save & Close").color(Theme.PRIMARY_FG))
-                .backgroundColor(Theme.PRIMARY)
-                .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_40)
-                .setZIndex(ZIndex.Layer.OVERLAY, 1)
-                .onClick(this::saveAndClose);
+        LabelItem label = new LabelItem(uiSystem, 0, 0,
+                new TextComponent(text).color(Theme.FOREGROUND))
+                .addClass(StyleKey.FLEX_GROW_1, StyleKey.FLEX_BASIS_40);
 
-        ButtonItem cancel = new ButtonItem(uiSystem, 0, 0, 120, ACTIONS_H,
-                new TextComponent("Cancel").color(Theme.SECONDARY_FG))
-                .backgroundColor(Theme.SECONDARY)
-                .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_40)
-                .setZIndex(ZIndex.Layer.OVERLAY, 1)
-                .onClick(this::close);
+        FlexContainer actions = new FlexContainer(uiSystem, 0, 0, 100, ROW_H)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.GAP_2, StyleKey.ITEMS_CENTER, StyleKey.FLEX_BASIS_40);
 
-        return flex.addChild(cancel).addChild(save);
+        ButtonItem edit = new ButtonItem(uiSystem, 0, 0, 64, 28,
+                new TextComponent("Edit").color(Theme.SECONDARY_FG))
+                .backgroundColor(Theme.INPUT)
+                .addClass(StyleKey.ROUNDED_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_20)
+                .onClick(() -> startEdit(itemIndex));
+
+        ButtonItem delete = new ButtonItem(uiSystem, 0, 0, 60, 28,
+                new TextComponent("Delete").color(0xFFFFFFFF))
+                .backgroundColor(Theme.DANGER)
+                .addClass(StyleKey.ROUNDED_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_20)
+                .onClick(() -> removeAt(itemIndex));
+
+        actions.addChild(edit).addChild(delete);
+        row.addChild(label).addChild(actions);
+
+        return row;
     }
 
-    private void rebuildList() {
-        listView.clearContentChildren();
-        for (int i = 0; i < temp.size(); i++) {
-            final int idx = i;
-            String text = asString.apply(temp.get(i));
+    private void onItemSelect(ListContainer.ListItem<T> listItem) {
+        FlexContainer itemElement = (FlexContainer) listItem.getElement();
+        FlexContainer actions = (FlexContainer) itemElement.getChildren().get(1);
 
-            FlexContainer row = new FlexContainer(uiSystem, 0, 0, 100, ROW_H)
-                    .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_BETWEEN, StyleKey.ITEMS_CENTER,
-                            StyleKey.P_2, StyleKey.ROUNDED_MD);
-            row.setBackgroundColor(Theme.SURFACE).setRenderBackground(true);
+        ButtonItem editBtn = (ButtonItem) actions.getChildren().get(0);
+        ButtonItem deleteBtn = (ButtonItem) actions.getChildren().get(1);
 
-            LabelItem label = new LabelItem(uiSystem, 0, 0,
-                    new TextComponent(text).color(Theme.FOREGROUND))
-                    .addClass(StyleKey.FLEX_GROW_1, StyleKey.FLEX_BASIS_40);
+        editBtn.onClick(() -> startEdit(listItem.getIndex()));
+        deleteBtn.onClick(() -> removeAt(listItem.getIndex()));
+    }
 
-            FlexContainer actions = new FlexContainer(uiSystem, 0, 0, 100, ROW_H)
-                    .addClass(StyleKey.FLEX_ROW, StyleKey.GAP_2, StyleKey.ITEMS_CENTER, StyleKey.FLEX_BASIS_40);
+    private void startEdit(int index) {
+        if (index >= 0 && index < workingCopy.size()) {
+            editingIndex = index;
+            input.setText(asString.apply(workingCopy.get(index)));
+            addOrUpdateBtn.setText(new TextComponent("Update").color(Theme.PRIMARY_FG));
+            cancelEditBtn.setVisible(true);
 
-            ButtonItem edit = new ButtonItem(uiSystem, 0, 0, 64, 28,
-                    new TextComponent("Edit").color(Theme.SECONDARY_FG))
-                    .backgroundColor(Theme.INPUT)
-                    .addClass(StyleKey.ROUNDED_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_20)
-                    .onClick(() -> startEdit(idx));
-
-            ButtonItem del = new ButtonItem(uiSystem, 0, 0, 40, 28,
-                    new TextComponent("Delete").color(0xFFFFFFFF))
-                    .backgroundColor(Theme.DANGER)
-                    .addClass(StyleKey.ROUNDED_SM, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_20)
-                    .onClick(() -> removeAt(idx));
-
-            actions.addChild(edit).addChild(del);
-            row.addChild(label).addChild(actions);
-            listView.addChild(row);
+            listView.selectItem(index);
         }
-        listView.markConstraintsDirty();
-        listView.updateConstraints();
-    }
-
-    private void startEdit(int idx) {
-        editingIndex = idx;
-        input.setText(asString.apply(temp.get(idx)));
-        addOrUpdateBtn.setText(new TextComponent("Update").color(Theme.PRIMARY_FG));
-        cancelEditBtn.setVisible(true);
     }
 
     private void cancelEdit() {
@@ -201,6 +204,7 @@ public class ListEditScreen<T> extends BaseTemplate {
         input.setText("");
         addOrUpdateBtn.setText(new TextComponent("Add").color(Theme.PRIMARY_FG));
         cancelEditBtn.setVisible(false);
+        listView.clearSelection();
     }
 
     private void addOrUpdate() {
@@ -209,28 +213,105 @@ public class ListEditScreen<T> extends BaseTemplate {
 
         try {
             T value = parse.apply(raw.trim());
-            if (editingIndex >= 0 && editingIndex < temp.size()) {
-                temp.set(editingIndex, value);
+
+            if (editingIndex >= 0 && editingIndex < workingCopy.size()) {
+                // Update existing item
+                workingCopy.set(editingIndex, value);
+                listView.updateItem(editingIndex, value);
             } else {
-                temp.add(value);
+                // Add new item
+                workingCopy.add(value);
+                listView.addItem(value);
             }
+
             cancelEdit();
-            rebuildList();
-        } catch (Exception ignored) {
-            addOrUpdateBtn.setText(new TextComponent("Invalid").color(0xFFFFFFFF));
+            listView.refresh(); // Refresh the entire list to ensure proper rendering
+
+        } catch (Exception e) {
+            // Show error feedback
+            addOrUpdateBtn.setText(new TextComponent("Invalid").color(0xFFFFFFFF))
+                    .backgroundColor(Theme.DANGER);
+
+            // Reset button after a delay (you might want to implement a proper timer)
+            new Thread(() -> {
+                try {
+                    Thread.sleep(2000);
+                    addOrUpdateBtn.setText(editingIndex >= 0 ?
+                                    new TextComponent("Update").color(Theme.PRIMARY_FG) :
+                                    new TextComponent("Add").color(Theme.PRIMARY_FG))
+                            .backgroundColor(Theme.PRIMARY);
+                } catch (InterruptedException ignored) {
+                }
+            }).start();
         }
     }
 
-    private void removeAt(int idx) {
-        if (editingIndex == idx) cancelEdit();
-        if (idx >= 0 && idx < temp.size()) {
-            temp.remove(idx);
-            rebuildList();
+    private void removeAt(int index) {
+        if (index >= 0 && index < workingCopy.size()) {
+            if (editingIndex == index) {
+                cancelEdit();
+            } else if (editingIndex > index) {
+                editingIndex--;
+            }
+
+            workingCopy.remove(index);
+            listView.removeItem(index);
         }
+    }
+
+    @Override
+    protected void resizeEvent() {
+        if (listView != null) {
+            listView.setHeight(contentHeight - EDITOR_H - 16);
+            listView.markConstraintsDirty();
+        }
+    }
+
+    @Override
+    protected BaseContainer createFooter() {
+        FlexContainer flex = new FlexContainer(uiSystem, 0, contentHeight, width, footerHeight)
+                .setRenderBackground(true)
+                .setBackgroundColor(Theme.SURFACE)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.JUSTIFY_CENTER, StyleKey.ITEMS_CENTER, StyleKey.GAP_2)
+                .setZIndex(ZIndex.Layer.OVERLAY, 0);
+
+        ButtonItem cancel = new ButtonItem(uiSystem, 0, 0, 120, ACTIONS_H,
+                new TextComponent("Cancel").color(Theme.SECONDARY_FG))
+                .backgroundColor(Theme.SECONDARY)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_40)
+                .setZIndex(ZIndex.Layer.OVERLAY, 1)
+                .onClick(this::close);
+
+        ButtonItem save = new ButtonItem(uiSystem, 0, 0, 140, ACTIONS_H,
+                new TextComponent("Save & Close").color(Theme.PRIMARY_FG))
+                .backgroundColor(Theme.PRIMARY)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_40)
+                .setZIndex(ZIndex.Layer.OVERLAY, 1)
+                .onClick(this::saveAndClose);
+
+        return flex.addChild(cancel).addChild(save);
     }
 
     private void saveAndClose() {
-        setting.setValue(new ArrayList<>(temp));
+        setting.setValue(new ArrayList<>(workingCopy));
         close();
+    }
+
+    public ListContainer<T> getListView() {
+        return listView;
+    }
+
+    public List<T> getWorkingCopy() {
+        return new ArrayList<>(workingCopy);
+    }
+
+    public boolean hasUnsavedChanges() {
+        List<T> original = setting.getValue();
+        if (original == null) return !workingCopy.isEmpty();
+        return !original.equals(workingCopy);
+    }
+
+    public void refreshList() {
+        listView.setItems(workingCopy);
     }
 }
