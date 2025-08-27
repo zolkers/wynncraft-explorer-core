@@ -30,10 +30,35 @@ public abstract class BaseContainer extends UIElement implements IContainer {
             children.add(element);
             markConstraintsDirty();
 
+            if (styleSystem != null) {
+                styleSystem.getEventManager().registerElement(element);
+            }
+
             invalidateAllInteractionBounds();
+
+            updateInteractionHierarchy();
         }
         return (T) this;
     }
+
+    private void updateInteractionHierarchy() {
+        for (UIElement child : children) {
+            if (child != null) {
+                child.markConstraintsDirty();
+                child.updateConstraints();
+                child.updateInteractionBounds();
+
+                if (child instanceof BaseContainer container) {
+                    container.updateInteractionHierarchy();
+                }
+            }
+        }
+
+        markConstraintsDirty();
+        updateConstraints();
+        updateInteractionBounds();
+    }
+
 
     @Override
     public <T extends IContainer> T removeChild(UIElement element) {
@@ -43,14 +68,19 @@ public abstract class BaseContainer extends UIElement implements IContainer {
             element.setParent(null);
             element.markAsNotRendered();
 
+            if (styleSystem != null) {
+                styleSystem.getEventManager().unregisterElement(element);
+            }
+
             if (capturedElement == element) {
                 capturedElement = null;
                 capturedButton = -1;
             }
 
             markConstraintsDirty();
-
             invalidateAllInteractionBounds();
+
+            updateInteractionHierarchy();
         }
         return (T) this;
     }
@@ -74,6 +104,10 @@ public abstract class BaseContainer extends UIElement implements IContainer {
             if (child != null) {
                 child.setParent(null);
                 child.markAsNotRendered();
+
+                if (styleSystem != null) {
+                    styleSystem.getEventManager().unregisterElement(child);
+                }
             }
         }
         children.clear();
@@ -82,6 +116,9 @@ public abstract class BaseContainer extends UIElement implements IContainer {
         capturedButton = -1;
 
         markConstraintsDirty();
+
+        updateInteractionHierarchy();
+
         return (T) this;
     }
 
@@ -133,6 +170,8 @@ public abstract class BaseContainer extends UIElement implements IContainer {
     @Override
     public boolean onMouseClick(double mouseX, double mouseY, int button) {
         if (!canInteract(mouseX, mouseY)) return false;
+
+        updateInteractionHierarchy();
 
         List<UIElement> sorted = LayoutEngine.sortByRenderOrder(children);
         for (int i = sorted.size() - 1; i >= 0; i--) {
@@ -270,6 +309,9 @@ public abstract class BaseContainer extends UIElement implements IContainer {
 
         markAsRendered();
         updateConstraints();
+
+        updateInteractionHierarchy();
+
         renderBackground(context);
 
         InteractionBounds bounds = getInteractionBounds();

@@ -76,7 +76,7 @@ public class ListContainer<T> extends ScrollContainer {
     public ListContainer<T> addItem(T item) {
         if (item != null) {
             items.add(item);
-            rebuildList();
+            forceCompleteRebuild();
         }
         return this;
     }
@@ -84,7 +84,7 @@ public class ListContainer<T> extends ScrollContainer {
     public ListContainer<T> addItem(int index, T item) {
         if (item != null && index >= 0 && index <= items.size()) {
             items.add(index, item);
-            rebuildList();
+            forceCompleteRebuild();
         }
         return this;
     }
@@ -93,13 +93,14 @@ public class ListContainer<T> extends ScrollContainer {
         if (index >= 0 && index < items.size()) {
             items.remove(index);
             selectedIndices.removeIf(i -> i == index);
-            // Adjust remaining selected indices
+
             for (int i = 0; i < selectedIndices.size(); i++) {
                 if (selectedIndices.get(i) > index) {
                     selectedIndices.set(i, selectedIndices.get(i) - 1);
                 }
             }
-            rebuildList();
+
+            forceCompleteRebuild();
         }
         return this;
     }
@@ -115,20 +116,53 @@ public class ListContainer<T> extends ScrollContainer {
     public ListContainer<T> updateItem(int index, T newItem) {
         if (index >= 0 && index < items.size() && newItem != null) {
             items.set(index, newItem);
-            refreshItem(index);
+            forceCompleteRebuild();
         }
         return this;
     }
 
     public ListContainer<T> clearItems() {
         items.clear();
-        listItems.clear();
         selectedIndices.clear();
-        clearContentChildren();
+        forceCompleteRebuild();
         return this;
     }
 
-    // Configuration methods
+    private void forceCompleteRebuild() {
+        // Nettoyer complètement l'event manager
+        for (UIElement child : getChildren()) {
+            if (child != null) {
+                styleSystem.getEventManager().unregisterElement(child);
+            }
+        }
+
+        // Vider les containers
+        listItems.clear();
+        clearContentChildren();
+
+        // Reconstruire avec les bons indices
+        if (itemFactory != null && !items.isEmpty()) {
+            for (int i = 0; i < items.size(); i++) {
+                T item = items.get(i);
+                UIElement element = itemFactory.apply(item);
+
+                if (element != null) {
+                    ListItem<T> listItem = new ListItem<>(item, i, element);
+                    listItem.setSelected(selectedIndices.contains(i));
+                    listItems.add(listItem);
+
+                    setupElementInteractions(listItem, element);
+                    addChild(element);
+                    styleSystem.getEventManager().registerElement(element);
+                }
+            }
+        }
+
+        markConstraintsDirty();
+        updateConstraints();
+    }
+
+
     public ListContainer<T> setItemFactory(Function<T, UIElement> factory) {
         this.itemFactory = factory;
         rebuildList();
@@ -164,7 +198,6 @@ public class ListContainer<T> extends ScrollContainer {
         return this;
     }
 
-    // Event handlers
     public ListContainer<T> onItemClick(Consumer<ListItem<T>> handler) {
         this.onItemClick = handler;
         return this;
@@ -290,33 +323,6 @@ public class ListContainer<T> extends ScrollContainer {
         return selectedIndices.contains(index);
     }
 
-    // Internal methods
-    private void rebuildList() {
-        listItems.clear();
-        clearContentChildren();
-
-        if (itemFactory == null || items.isEmpty()) {
-            return;
-        }
-
-        for (int i = 0; i < items.size(); i++) {
-            T item = items.get(i);
-            UIElement element = itemFactory.apply(item);
-
-            if (element != null) {
-                ListItem<T> listItem = new ListItem<>(item, i, element);
-                listItem.setSelected(selectedIndices.contains(i));
-                listItems.add(listItem);
-
-                setupElementInteractions(listItem, element);
-                addChild(element);
-            }
-        }
-
-        markConstraintsDirty();
-        updateConstraints();
-    }
-
     private void refreshItem(int index) {
         if (index >= 0 && index < listItems.size() && itemUpdater != null) {
             ListItem<T> listItem = listItems.get(index);
@@ -324,16 +330,19 @@ public class ListContainer<T> extends ScrollContainer {
         }
     }
 
-    private void setupElementInteractions(ListItem<T> listItem, UIElement element) {
-        final int index = listItem.getIndex();
+    private void rebuildList() {
+        forceCompleteRebuild();
+    }
 
-        // Click handling
+    private void setupElementInteractions(ListItem<T> listItem, UIElement element) {
+        final int currentIndex = listItem.getIndex();
+
         element.onClick(() -> {
             if (selectionEnabled) {
                 if (multiSelection) {
-                    toggleSelection(index);
+                    toggleSelection(currentIndex);
                 } else {
-                    selectItem(index);
+                    selectItem(currentIndex);
                 }
             }
             if (onItemClick != null) {
@@ -341,7 +350,6 @@ public class ListContainer<T> extends ScrollContainer {
             }
         });
 
-        // Hover handling
         element.onMouseEnter(() -> {
             if (onItemHover != null) {
                 onItemHover.accept(listItem, true);
@@ -360,7 +368,6 @@ public class ListContainer<T> extends ScrollContainer {
         var kids = getChildren();
         if (kids.isEmpty()) return;
 
-        // Update constraints for all children first
         for (UIElement child : kids) {
             if (child.isVisible()) {
                 child.markConstraintsDirty();
@@ -379,7 +386,6 @@ public class ListContainer<T> extends ScrollContainer {
             layoutHorizontal(kids, contentX, contentY, vh, gap);
         }
 
-        // Final constraint updates
         for (UIElement child : kids) {
             if (child.isVisible()) {
                 child.updateConstraints();

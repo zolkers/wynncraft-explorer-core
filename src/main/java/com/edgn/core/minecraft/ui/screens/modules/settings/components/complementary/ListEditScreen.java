@@ -215,24 +215,20 @@ public class ListEditScreen<T> extends BaseTemplate {
             T value = parse.apply(raw.trim());
 
             if (editingIndex >= 0 && editingIndex < workingCopy.size()) {
-                // Update existing item
                 workingCopy.set(editingIndex, value);
                 listView.updateItem(editingIndex, value);
             } else {
-                // Add new item
                 workingCopy.add(value);
                 listView.addItem(value);
             }
 
             cancelEdit();
-            listView.refresh(); // Refresh the entire list to ensure proper rendering
+            listView.refresh();
 
         } catch (Exception e) {
-            // Show error feedback
             addOrUpdateBtn.setText(new TextComponent("Invalid").color(0xFFFFFFFF))
                     .backgroundColor(Theme.DANGER);
 
-            // Reset button after a delay (you might want to implement a proper timer)
             new Thread(() -> {
                 try {
                     Thread.sleep(2000);

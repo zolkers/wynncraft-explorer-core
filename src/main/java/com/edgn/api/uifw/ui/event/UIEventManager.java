@@ -24,6 +24,13 @@ public final class UIEventManager {
     public void registerElement(UIElement element) {
         if (element != null) {
             elements.add(element);
+
+            if (focusedElement == element && (!element.isVisible() || !element.isRendered())) {
+                focusedElement = null;
+            }
+            if (hoveredElement == element && (!element.isVisible() || !element.isRendered())) {
+                hoveredElement = null;
+            }
         }
     }
 
@@ -40,6 +47,10 @@ public final class UIEventManager {
         if (hoveredElement == element) {
             hoveredElement.onMouseLeave();
             hoveredElement = null;
+        }
+
+        if (!Double.isNaN(lastMouseX) && !Double.isNaN(lastMouseY)) {
+            updateHoverUnderMouse();
         }
     }
 
@@ -85,6 +96,8 @@ public final class UIEventManager {
     }
 
     private void updateHoverUnderMouse() {
+        if (Double.isNaN(lastMouseX) || Double.isNaN(lastMouseY)) return;
+
         UIElement newHover = pickTopElementAt(lastMouseX, lastMouseY);
 
         if (hoveredElement == newHover) return;
@@ -111,7 +124,7 @@ public final class UIEventManager {
 
         updateHoverUnderMouse();
 
-        for (UIElement element : elements) {
+        for (UIElement element : new ArrayList<>(elements)) {
             if (element.isVisible() && element.isRendered()) {
                 element.onMouseMove(mouseX, mouseY);
             }
@@ -120,10 +133,17 @@ public final class UIEventManager {
 
     public boolean onMouseClick(double mouseX, double mouseY, int button) {
         lastInteractionTime = System.currentTimeMillis();
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+
+        updateHoverUnderMouse();
 
         List<UIElement> sorted = getSortedInteractableElements(mouseX, mouseY);
         for (UIElement element : sorted) {
             if (!canElementInteractAt(element, mouseX, mouseY)) continue;
+
+            if (!element.isVisible() || !element.isEnabled() || !element.isRendered()) continue;
+
             if (element.onMouseClick(mouseX, mouseY, button)) {
                 setFocus(element);
                 return true;
@@ -190,6 +210,8 @@ public final class UIEventManager {
     }
 
     public void onTick() {
+        cleanupInvalidElements();
+
         if (focusedElement != null && (!focusedElement.isVisible() || !focusedElement.isRendered())) {
             setFocus(null);
         }
@@ -203,9 +225,18 @@ public final class UIEventManager {
             updateHoverUnderMouse();
         }
 
-        for (UIElement element : elements) {
-            element.onTick();
+        for (UIElement element : new ArrayList<>(elements)) {
+            if (element.isVisible() && element.isRendered()) {
+                element.onTick();
+            }
         }
+    }
+
+    private void cleanupInvalidElements() {
+        elements.removeIf(element ->
+                element == null ||
+                        (!element.isVisible() && !element.isRendered())
+        );
     }
 
     public void setFocus(UIElement element) {
@@ -223,6 +254,7 @@ public final class UIEventManager {
             focusedElement.onFocusGained();
         }
     }
+
 
     public void focusNext() {
         List<UIElement> focusable = elements.stream()
@@ -267,12 +299,31 @@ public final class UIEventManager {
 
         for (UIElement element : elements) {
             element.markAsNotRendered();
-            element.updateConstraints();
+            element.markConstraintsDirty();
         }
 
         lastInteractionTime = 0;
         lastMouseX = Double.NaN;
         lastMouseY = Double.NaN;
+
+        for (UIElement element : elements) {
+            element.updateConstraints();
+            element.updateInteractionBounds();
+        }
+    }
+
+    public void forceRefreshAll() {
+        resetAllElements();
+
+        for (UIElement element : elements) {
+            element.markConstraintsDirty();
+            element.updateConstraints();
+            element.updateInteractionBounds();
+        }
+
+        if (!Double.isNaN(lastMouseX) && !Double.isNaN(lastMouseY)) {
+            updateHoverUnderMouse();
+        }
     }
 
     public void updateAllConstraints() {

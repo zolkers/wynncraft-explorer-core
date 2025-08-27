@@ -10,6 +10,7 @@ import com.edgn.api.uifw.ui.layout.LayoutEngine;
 import com.edgn.api.uifw.ui.layout.ZIndex;
 import net.minecraft.client.gui.DrawContext;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("unused")
@@ -453,11 +454,17 @@ public class ScrollContainer extends BaseContainer {
 
     @Override
     public ScrollContainer removeChild(UIElement element) {
+        if (element != null) {
+            styleSystem.getEventManager().unregisterElement(element);
+        }
+
         super.removeChild(element);
+
         if (element == captured) {
             captured = null;
             capturedButton = -1;
         }
+
         return this;
     }
 
@@ -470,10 +477,22 @@ public class ScrollContainer extends BaseContainer {
     }
 
     public ScrollContainer clearContentChildren() {
+        List<UIElement> toRemove = new ArrayList<>();
+
         for (UIElement c : getChildren()) {
-            if (c instanceof ScrollbarItem) continue;
-            removeChild(c);
+            if (!(c instanceof ScrollbarItem)) {
+                toRemove.add(c);
+            }
         }
+
+        for (UIElement element : toRemove) {
+            styleSystem.getEventManager().unregisterElement(element);
+        }
+
+        for (UIElement element : toRemove) {
+            removeChild(element);
+        }
+
         captured = null;
         capturedButton = -1;
 
@@ -481,6 +500,8 @@ public class ScrollContainer extends BaseContainer {
         computeContentSize();
         clampScroll();
         updateInteractionBounds();
+
+        styleSystem.getEventManager().forceRefreshAll();
 
         return this;
     }
