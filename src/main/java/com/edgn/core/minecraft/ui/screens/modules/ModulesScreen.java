@@ -53,6 +53,8 @@ public final class ModulesScreen extends BaseTemplate {
     private TextFieldItem searchField;
     private GridContainer grid;
 
+    private ButtonItem searchBtn;
+
     private final ModulesScreenConfig config;
     private ModuleCategory selectedCategory;
 
@@ -126,7 +128,7 @@ public final class ModulesScreen extends BaseTemplate {
                         }
                 );
 
-        ButtonItem searchBtn = new ButtonItem(uiSystem, 0, 0, 70, 28,
+        searchBtn = new ButtonItem(uiSystem, 0, 0, 70, 28,
                 new TextComponent("Search").color(Theme.PRIMARY_FG))
                 .backgroundColor(Theme.PRIMARY)
                 .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_10)
@@ -182,12 +184,15 @@ public final class ModulesScreen extends BaseTemplate {
         rightCol.setHeight(usableH);
         rightCol.markConstraintsDirty();
 
+
         int searchH = 28;
         searchField.setX(0);
         searchField.setY(0);
         searchField.setWidth(Math.min(420, rightW));
         searchField.setHeight(searchH);
         searchField.markConstraintsDirty();
+
+        searchBtn.setHeight(28);
 
         int gridY = searchH + 8;
         int gridH = Math.max(0, usableH - gridY);
