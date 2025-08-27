@@ -107,24 +107,31 @@ public final class ModulesScreen extends BaseTemplate {
         rightCol = new FlexContainer(uiSystem, 0, 0, 100, contentHeight)
                 .addClass(StyleKey.FLEX_COLUMN, StyleKey.GAP_3, StyleKey.P_2, StyleKey.FLEX_GROW_2);
 
-        searchField = new TextFieldItem(uiSystem, 0, 0, 420, 28)
+        FlexContainer searchContainer = new FlexContainer(uiSystem, 0, 0, 420, 28)
+                .addClass(StyleKey.FLEX_ROW, StyleKey.GAP_2);
+
+        searchField = new TextFieldItem(uiSystem, 0, 0, 340, 28)
                 .setPlaceholder(new TextComponent("Type the name of a module...")
                         .pulse()
                         .color(ColorUtils.NamedColor.GRAY.toInt())
                         .italic())
-                .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.SHADOW_SM, StyleKey.FLEX_GROW_1)
                 .setBackgroundColor(Theme.INPUT)
                 .textPulse()
-                .textColor(ColorUtils.NamedColor.WHITE.toInt());
+                .textColor(ColorUtils.NamedColor.WHITE.toInt())
+                .setText(searchQuery);
 
-        searchField
-                .setText(searchQuery)
-                .onChange(text -> {
-                    this.searchQuery = text != null ? text : "";
+        ButtonItem searchBtn = new ButtonItem(uiSystem, 0, 0, 70, 28,
+                new TextComponent("Search").color(Theme.PRIMARY_FG))
+                .backgroundColor(Theme.PRIMARY)
+                .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN)
+                .onClick(() -> {
+                    this.searchQuery = searchField.getText();
                     rebuildGrid();
                 });
 
-        rightCol.addChild(searchField);
+        searchContainer.addChild(searchField).addChild(searchBtn);
+        rightCol.addChild(searchContainer);
 
         grid = new GridContainer(uiSystem, 0, 36, 100, contentHeight - 60)
                 .addClass(StyleKey.GAP_5, StyleKey.SHADOW_SM, StyleKey.ROUNDED_MD);
