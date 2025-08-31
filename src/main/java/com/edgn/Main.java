@@ -36,7 +36,7 @@ import java.util.ServiceLoader;
 public final class Main implements ModInitializer {
 	public static final String MOD_ID = "wynncraft-explorer";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	public static final String VERSION = "V1.2.2.5";
+	public static final String VERSION = "V1.2.2.5.1";
 	public static final EventManager EVENT_MANAGER = new EventManager();
 	public static final OverlayManager OVERLAY_MANAGER  = OverlayManager.getInstance();
 	public static final boolean TEST_MODE = true;
