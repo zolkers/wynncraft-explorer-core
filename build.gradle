@@ -28,9 +28,7 @@ dependencies {
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
 }
 
 processResources {
@@ -60,6 +58,16 @@ jar {
 
 	from("LICENSE") {
 		rename { "${it}_${inputs.properties.archivesName}"}
+	}
+
+	// Ajouter les métadonnées pour l'updater dans le manifest
+	manifest {
+		attributes([
+				"Implementation-Title": "Wynncraft Explorer Core",
+				"Implementation-Version": project.mod_version,
+				"Main-Class": "com.edgn.Main",
+				"Mod-Type": "core"
+		])
 	}
 }
 
@@ -94,4 +102,69 @@ publishing {
 
 tasks.named("publish").configure {
 	dependsOn(tasks.remapJar, tasks.remapSourcesJar)
+}
+
+tasks.register('publishToVPS', Exec) {
+	dependsOn 'remapJar'
+	group = 'publishing'
+	description = 'Upload the core mod JAR to VPS for auto-updates'
+
+	// make sure it runs after build
+	mustRunAfter 'build'
+
+	doFirst {
+		def vpsToken = project.findProperty('vps_token') ?: System.getenv('VPS_TOKEN')
+		if (!vpsToken) {
+			throw new GradleException("VPS token not found. Set -Pvps_token=YOUR_TOKEN or VPS_TOKEN environment variable")
+		}
+
+		def jarFile = tasks.remapJar.archiveFile.get().asFile
+		if (!jarFile.exists()) {
+			throw new GradleException("JAR file not found: ${jarFile}")
+		}
+
+		println "Publishing CORE MOD to VPS:"
+		println "  - File: ${jarFile.name}"
+		println "  - Version: ${project.mod_version}"
+		println "  - Size: ${jarFile.length()} bytes"
+	}
+
+	commandLine 'curl','-k','-X','POST',
+			'-H',"Authorization: Bearer ${project.findProperty('vps_token') ?: System.getenv('VPS_TOKEN')}",
+			'-F','mod_id=wynncraft-explorer',
+			'-F',"version=${project.mod_version}",
+			'-F','type=core',
+			'-F',"changelog=${project.findProperty('changelog') ?: 'Core mod update'}",
+			'-F',"critical=${project.findProperty('critical') ?: 'false'}",
+			'-F',"file=@${tasks.remapJar.archiveFile.get().asFile.absolutePath}",
+			'https://vps-14c83950.vps.ovh.net:8443/api/releases/upload'
+
+}
+
+tasks.register('release') {
+	dependsOn 'build', 'publishToVPS'
+	group = 'publishing'
+	description = 'Build and publish core mod to VPS'
+
+	doLast {
+		println ""
+		println "✓ CORE MOD RELEASE COMPLETED"
+		println "  Version: ${project.mod_version}"
+		println "  Published to VPS for auto-updates"
+		println ""
+	}
+}
+
+tasks.register('showBuildArtifacts') {
+	group = 'help'
+	description = 'Show which files will be uploaded to VPS'
+
+	doLast {
+		println "Core mod build artifacts:"
+		println "  Main JAR (will be uploaded): ${tasks.remapJar.archiveFile.get().asFile}"
+		println "  Sources JAR (GitHub only): ${tasks.remapSourcesJar.archiveFile.get().asFile}"
+		println ""
+		println "Upload command will be:"
+		println "  gradle release -Pchangelog='Your changelog' -Pcritical=false"
+	}
 }
