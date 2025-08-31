@@ -147,6 +147,7 @@ public final class ModuleSettingsScreen extends BaseTemplate implements ISetting
                 .setShowScrollbars(false)
                 .setScrollStep(10);
         sidebar.setBackgroundColor(Theme.CARD).setRenderBackground(true);
+        sidebar.setBackgroundColor(Theme.CARD).setRenderBackground(true);
         buildSidebar();
     }
 
