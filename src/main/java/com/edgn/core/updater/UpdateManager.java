@@ -7,14 +7,12 @@ import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.security.PublicKey;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -24,418 +22,297 @@ import java.util.jar.Manifest;
 public final class UpdateManager {
     private static UpdateManager instance;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(java.time.Duration.ofSeconds(10))
-            .build();
+    private final HttpClient http = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(10)).build();
+    private static final String BASE = "https://vps-14c83950.vps.ovh.net:8443";
+    private static final String API = BASE + "/api/releases";
 
-    private final String UPDATE_SERVER_URL = "https://vps-14c83950.vps.ovh.net:8443";
-    private final String API_ENDPOINT = UPDATE_SERVER_URL + "/api/releases";
-
-    private final Map<String, InstalledMod> installedMods = new HashMap<>();
+    private final Map<String, InstalledMod> installed = new HashMap<>();
     private final List<PendingUpdate> pendingUpdates = new ArrayList<>();
-    private PublicKey serverPublicKey;
-    private volatile boolean updatesChecked = false;
-
-    private UpdateManager() {
-        registerShutdownHook();
-    }
+    private PublicKey serverKey;
+    private volatile boolean startupChecked = false;
 
     public static UpdateManager getInstance() {
-        if (instance == null) {
-            instance = new UpdateManager();
-        }
+        if (instance == null) instance = new UpdateManager();
         return instance;
     }
 
-    private void registerShutdownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                Main.LOGGER.info("[Updater] JVM shutdown - checking for updates...");
-
-                if (fetchServerKey()) {
-                    scanInstalledMods();
-                    checkForUpdates();
-                    Thread.sleep(3000);
-                }
-
-                if (!pendingUpdates.isEmpty()) {
-                    Main.LOGGER.info("[Updater] Installing {} updates...", pendingUpdates.size());
-                    createAndExecuteUpdateScript();
-                }
-
-            } catch (Exception e) {
-                Main.LOGGER.error("[Updater] Shutdown hook failed: {}", e.getMessage());
-            }
-        }, "WE-Update-Hook"));
+    private UpdateManager() {
+        // Nettoyer les vieux fichiers .old au démarrage
+        cleanupOldFiles();
     }
 
     public void checkUpdatesOnStartup() {
-        if (updatesChecked) return;
-        updatesChecked = true;
-
-        Main.LOGGER.info("[Updater] Checking for updates on startup...");
+        if (startupChecked) return;
+        startupChecked = true;
 
         CompletableFuture.runAsync(() -> {
             try {
                 if (fetchServerKey()) {
-                    scanInstalledMods();
+                    scanInstalled();
                     checkForUpdates();
                 }
             } catch (Exception e) {
-                Main.LOGGER.error("[Updater] Startup check failed: {}", e.getMessage());
+                Main.LOGGER.error("Startup update check failed: {}", e.getMessage());
             }
         });
     }
 
-    private void scanInstalledMods() {
-        installedMods.clear();
-
-        // 1. CORE MOD - Utiliser la version hardcodée depuis Main.VERSION
-        String coreVersion = Main.VERSION;
-        String coreHash = CryptoUtils.calculateSecureFileHash(getCurrentJarPath());
-
-        installedMods.put("wynncraft-explorer", new InstalledMod(
-                "wynncraft-explorer",
-                coreVersion,
-                "core",
-                coreHash,
-                getCurrentJarPath()
-        ));
-
-        Main.LOGGER.info("[Updater] Found CORE MOD: wynncraft-explorer v{}", coreVersion);
-
-        // 2. EXTENSIONS - Scanner le dossier mods
-        try {
-            Path modsPath = Paths.get("mods");
-            if (!Files.exists(modsPath)) return;
-
-            Files.list(modsPath)
-                    .filter(this::isValidModJar)
-                    .forEach(this::scanExtensionJar);
-
-        } catch (Exception e) {
-            Main.LOGGER.error("[Updater] Error scanning mods directory: {}", e.getMessage());
-        }
-    }
-
-    private boolean isValidModJar(Path jarPath) {
-        String fileName = jarPath.getFileName().toString();
-
-        // Filtrer les JAR sources et autres fichiers non-mod
-        if (!fileName.endsWith(".jar")) return false;
-        if (fileName.contains("-sources")) return false;
-        if (fileName.contains("-dev")) return false;
-        if (fileName.contains("-javadoc")) return false;
-
-        // Ne pas scanner le core mod lui-même
-        try {
-            Path currentJar = getCurrentJarPath();
-            if (jarPath.equals(currentJar)) return false;
-        } catch (Exception e) {
-            // Ignore
-        }
-
-        return true;
-    }
-
-    private void scanExtensionJar(Path jarPath) {
-        try (JarFile jarFile = new JarFile(jarPath.toFile())) {
-            Manifest manifest = jarFile.getManifest();
-            if (manifest == null) {
-                Main.LOGGER.debug("[Updater] No manifest in {}, skipping", jarPath.getFileName());
-                return;
-            }
-
-            var attributes = manifest.getMainAttributes();
-
-            // Chercher les métadonnées de l'extension
-            String modId = getModIdFromManifest(attributes);
-            String version = getVersionFromManifest(attributes, jarPath);
-
-            if (modId != null && version != null) {
-                String hash = CryptoUtils.calculateSecureFileHash(jarPath);
-                installedMods.put(modId, new InstalledMod(modId, version, "extension", hash, jarPath));
-                Main.LOGGER.info("[Updater] Found EXTENSION: {} v{}", modId, version);
-            } else {
-                Main.LOGGER.debug("[Updater] Could not extract mod info from {}", jarPath.getFileName());
-            }
-
-        } catch (Exception e) {
-            Main.LOGGER.warn("[Updater] Failed to scan {}: {}", jarPath.getFileName(), e.getMessage());
-        }
-    }
-
-    private String getModIdFromManifest(java.util.jar.Attributes attributes) {
-        // Plusieurs façons possibles de détecter l'ID du mod
-        String modId = attributes.getValue("Mod-Id");
-        if (modId != null) return modId;
-
-        modId = attributes.getValue("Implementation-Title");
-        if (modId != null) return modId;
-
-        modId = attributes.getValue("Bundle-SymbolicName");
-        if (modId != null) return modId;
-
-        // Si c'est une extension connue, détecter par classe
-        String mainClass = attributes.getValue("Main-Class");
-        if (mainClass != null && mainClass.contains("dernext")) {
-            return "wynncraft-explorer-dern";
-        }
-
-        return null;
-    }
-
-    private String getVersionFromManifest(java.util.jar.Attributes attributes, Path jarPath) {
-        // 1. Version explicite dans le manifest
-        String version = attributes.getValue("Mod-Version");
-        if (version != null && !version.isEmpty()) return version;
-
-        version = attributes.getValue("Implementation-Version");
-        if (version != null && !version.isEmpty()) return version;
-
-        version = attributes.getValue("Bundle-Version");
-        if (version != null && !version.isEmpty()) return version;
-
-        // 2. Extraire depuis le nom du fichier
-        // Format attendu: modname-version.jar
-        String fileName = jarPath.getFileName().toString();
-        if (fileName.endsWith(".jar")) {
-            String nameWithoutExt = fileName.substring(0, fileName.lastIndexOf(".jar"));
-
-            // Chercher le dernier pattern -version
-            String[] parts = nameWithoutExt.split("-");
-            if (parts.length >= 2) {
-                String lastPart = parts[parts.length - 1];
-                // Vérifier si ça ressemble à une version (contient des chiffres)
-                if (lastPart.matches(".*\\d.*")) {
-                    return lastPart;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private boolean fetchServerKey() {
-        try {
-            Main.LOGGER.info("[Updater] Fetching server public key...");
-
-            HttpRequest keyRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(API_ENDPOINT + "/public-key"))
-                    .header("User-Agent", "WynncraftExplorer/" + Main.VERSION)
-                    .timeout(java.time.Duration.ofSeconds(15))
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(keyRequest, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                Main.LOGGER.error("[Updater] Failed to fetch server key: HTTP {}", response.statusCode());
-                return false;
-            }
-
-            JsonObject keyData = JsonParser.parseString(response.body()).getAsJsonObject();
-            String publicKeyPem = keyData.get("public_key").getAsString();
-            serverPublicKey = CryptoUtils.parsePublicKeyFromPem(publicKeyPem);
-
-            if (serverPublicKey == null) {
-                Main.LOGGER.error("[Updater] Failed to parse server public key");
-                return false;
-            }
-
-            // Test de vérification
-            String testMessage = keyData.get("test_message").getAsString();
-            String testSignature = keyData.get("test_signature").getAsString();
-
-            if (!CryptoUtils.verifySignature(testMessage, testSignature, serverPublicKey)) {
-                Main.LOGGER.error("[Updater] Server key verification failed");
-                return false;
-            }
-
-            Main.LOGGER.info("[Updater] Server key verified successfully");
-            return true;
-
-        } catch (Exception e) {
-            Main.LOGGER.error("[Updater] Error fetching server key: {}", e.getMessage());
-            return false;
-        }
-    }
-
     private void checkForUpdates() {
         try {
-            JsonObject request = createUpdateRequest();
-
-            HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(API_ENDPOINT + "/check"))
+            JsonObject req = buildCheckBody();
+            HttpRequest rq = HttpRequest.newBuilder()
+                    .uri(URI.create(API + "/check"))
                     .header("Content-Type", "application/json")
                     .header("User-Agent", "WynncraftExplorer/" + Main.VERSION)
                     .header("X-Client-Version", Main.VERSION)
-                    .header("X-Request-Signature", CryptoUtils.signRequest(request.toString()))
+                    .header("X-Request-Signature", CryptoUtils.signRequest(req.toString()))
                     .timeout(java.time.Duration.ofSeconds(30))
-                    .POST(HttpRequest.BodyPublishers.ofString(request.toString()))
+                    .POST(HttpRequest.BodyPublishers.ofString(req.toString()))
                     .build();
 
-            HttpResponse<String> response = httpClient.sendAsync(
-                            httpRequest, HttpResponse.BodyHandlers.ofString())
-                    .get(30, java.util.concurrent.TimeUnit.SECONDS);
-
-            handleUpdateResponse(response);
-
+            HttpResponse<String> r = http.send(rq, HttpResponse.BodyHandlers.ofString());
+            handleCheckResponse(r);
         } catch (Exception e) {
-            Main.LOGGER.error("[Updater] Update check failed: {}", e.getMessage());
+            Main.LOGGER.error("Check fail: {}", e.getMessage());
         }
     }
 
-    private JsonObject createUpdateRequest() {
-        JsonObject request = new JsonObject();
-        request.addProperty("action", "check_updates");
-        request.addProperty("client_id", CryptoUtils.generateClientId());
-        request.addProperty("timestamp", System.currentTimeMillis());
-
-        JsonArray modsArray = new JsonArray();
-        for (InstalledMod mod : installedMods.values()) {
-            JsonObject modObj = new JsonObject();
-            modObj.addProperty("mod_id", mod.id);
-            modObj.addProperty("version", mod.version);
-            modObj.addProperty("type", mod.type);
-            modObj.addProperty("hash", mod.hash);
-            modsArray.add(modObj);
-        }
-        request.add("installed_mods", modsArray);
-
-        return request;
-    }
-
-    private void handleUpdateResponse(HttpResponse<String> response) {
+    private void handleCheckResponse(HttpResponse<String> r) {
         try {
-            if (response.statusCode() != 200) {
-                Main.LOGGER.warn("[Updater] Server returned status: {}", response.statusCode());
+            if (r.statusCode() != 200) return;
+
+            String sig = r.headers().firstValue("X-Response-Signature").orElse("");
+            if (sig.isEmpty() || serverKey == null || !CryptoUtils.verifySignature(r.body(), sig, serverKey)) {
+                Main.LOGGER.warn("Invalid signature on update response");
                 return;
             }
 
-            // Vérifier signature de la réponse
-            String signature = response.headers().firstValue("X-Response-Signature").orElse("");
-            if (!CryptoUtils.verifySignature(response.body(), signature, serverPublicKey)) {
-                Main.LOGGER.error("[Updater] Response signature verification failed!");
-                return;
+            JsonObject j = JsonParser.parseString(r.body()).getAsJsonObject();
+            if (!j.has("updates")) return;
+
+            for (var el : j.getAsJsonArray("updates")) {
+                JsonObject u = el.getAsJsonObject();
+                String modId = u.get("mod_id").getAsString();
+                String currentVersion = u.get("current_version").getAsString();
+                String newVersion = u.get("new_version").getAsString();
+
+                if (!VersionComparator.isNewer(newVersion, currentVersion)) {
+                    Main.LOGGER.debug("Skipping update for {} - {} is not newer than {}",
+                            modId, newVersion, currentVersion);
+                    continue;
+                }
+
+                PendingUpdate update = new PendingUpdate(
+                        modId,
+                        currentVersion,
+                        newVersion,
+                        u.get("download_url").getAsString(),
+                        u.get("signature").getAsString(),
+                        u.get("file_hash").getAsString(),
+                        u.has("changelog") ? u.get("changelog").getAsString() : "",
+                        u.has("critical") && u.get("critical").getAsBoolean()
+                );
+
+                // Télécharger l'update
+                if (downloadUpdate(update)) {
+                    pendingUpdates.add(update);
+                    notifyUser(update);
+
+                    // Ajouter le shutdown hook pour cette update
+                    addShutdownHook(update);
+                }
             }
-
-            JsonObject updateInfo = JsonParser.parseString(response.body()).getAsJsonObject();
-
-            if (updateInfo.has("updates") && updateInfo.getAsJsonArray("updates").size() > 0) {
-                processAvailableUpdates(updateInfo.getAsJsonArray("updates"));
-            } else {
-                Main.LOGGER.info("[Updater] No updates available");
-            }
-
         } catch (Exception e) {
-            Main.LOGGER.error("[Updater] Error handling update response: {}", e.getMessage());
+            Main.LOGGER.error("Handle response fail: {}", e.getMessage());
         }
     }
 
-    private void processAvailableUpdates(JsonArray updates) {
-        for (var updateElement : updates) {
-            JsonObject updateObj = updateElement.getAsJsonObject();
-
-            String modId = updateObj.get("mod_id").getAsString();
-            String currentVersion = updateObj.get("current_version").getAsString();
-            String newVersion = updateObj.get("new_version").getAsString();
-            String downloadUrl = updateObj.get("download_url").getAsString();
-            String signature = updateObj.get("signature").getAsString();
-            String fileHash = updateObj.get("file_hash").getAsString();
-            String changelog = updateObj.has("changelog") ? updateObj.get("changelog").getAsString() : "";
-            boolean critical = updateObj.has("critical") && updateObj.get("critical").getAsBoolean();
-
-            // Vérifier que nous avons vraiment ce mod installé
-            if (!installedMods.containsKey(modId)) {
-                Main.LOGGER.debug("[Updater] Ignoring update for unknown mod: {}", modId);
-                continue;
-            }
-
-            // Vérifier que les versions correspondent
-            InstalledMod installedMod = installedMods.get(modId);
-            if (!installedMod.version.equals(currentVersion)) {
-                Main.LOGGER.warn("[Updater] Version mismatch for {}: server says {} but we have {}",
-                        modId, currentVersion, installedMod.version);
-                continue;
-            }
-
-            PendingUpdate pendingUpdate = new PendingUpdate(
-                    modId, currentVersion, newVersion, downloadUrl,
-                    signature, fileHash, changelog, critical
-            );
-
-            if (downloadAndVerifyUpdate(pendingUpdate)) {
-                pendingUpdates.add(pendingUpdate);
-
-                String priority = critical ? "CRITICAL" : "NORMAL";
-                Main.LOGGER.info("[Updater] {} update ready: {} v{} -> v{}",
-                        priority, modId, currentVersion, newVersion);
-
-                notifyUser(pendingUpdate);
-            }
-        }
-    }
-
-    private boolean downloadAndVerifyUpdate(PendingUpdate update) {
+    private boolean downloadUpdate(PendingUpdate update) {
         try {
-            Main.LOGGER.info("[Updater] Downloading update for {}...", update.modId);
+            Main.LOGGER.info("Downloading update for {}: {} -> {}",
+                    update.modId, update.currentVersion, update.newVersion);
 
-            HttpRequest downloadRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(update.downloadUrl))
+            // Télécharger dans le dossier updates
+            Path updateFile = getUpdateFilePath(update.modId);
+            Files.createDirectories(updateFile.getParent());
+
+            HttpRequest rq = HttpRequest.newBuilder()
+                    .uri(URI.create(update.url))
                     .header("User-Agent", "WynncraftExplorer/" + Main.VERSION)
                     .timeout(java.time.Duration.ofMinutes(5))
-                    .GET()
-                    .build();
+                    .GET().build();
 
-            HttpResponse<byte[]> response = httpClient.send(
-                    downloadRequest, HttpResponse.BodyHandlers.ofByteArray());
-
-            if (response.statusCode() != 200) {
-                Main.LOGGER.error("[Updater] Download failed for {}: HTTP {}",
-                        update.modId, response.statusCode());
+            HttpResponse<byte[]> r = http.send(rq, HttpResponse.BodyHandlers.ofByteArray());
+            if (r.statusCode() != 200) {
+                Main.LOGGER.error("Failed to download update: HTTP {}", r.statusCode());
                 return false;
             }
 
-            byte[] fileData = response.body();
+            byte[] data = r.body();
 
             // Vérifier le hash
-            String actualHash = CryptoUtils.calculateHashFromBytes(fileData);
-            if (!update.fileHash.equals(actualHash)) {
-                Main.LOGGER.error("[Updater] Hash mismatch for {}: expected {} got {}",
-                        update.modId, update.fileHash, actualHash);
+            String hash = CryptoUtils.calculateHashFromBytes(data);
+            if (!update.hash.equals(hash)) {
+                Main.LOGGER.error("Hash mismatch for update {}", update.modId);
                 return false;
             }
 
             // Vérifier la signature
-            if (!CryptoUtils.verifySignature(actualHash, update.signature, serverPublicKey)) {
-                Main.LOGGER.error("[Updater] Signature verification failed for {}", update.modId);
+            if (!CryptoUtils.verifySignature(hash, update.signature, serverKey)) {
+                Main.LOGGER.error("Invalid signature for update {}", update.modId);
                 return false;
             }
 
-            // Sauvegarder temporairement
-            update.tempFilePath = CryptoUtils.saveTemporaryFile(update.modId, fileData);
-            if (update.tempFilePath == null) {
-                return false;
-            }
+            // Sauvegarder le fichier
+            Files.write(updateFile, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            update.downloadedFile = updateFile;
 
-            Main.LOGGER.info("[Updater] Successfully verified update for {}", update.modId);
+            Main.LOGGER.info("Successfully downloaded update for {}", update.modId);
             return true;
 
         } catch (Exception e) {
-            Main.LOGGER.error("[Updater] Error downloading/verifying {}: {}",
-                    update.modId, e.getMessage());
+            Main.LOGGER.error("Download failed for {}: {}", update.modId, e.getMessage());
             return false;
         }
     }
 
+    /**
+     * Ajoute un shutdown hook pour appliquer l'update
+     * Stratégie Wynntils : copier le nouveau fichier par-dessus l'ancien
+     */
+    private void addShutdownHook(PendingUpdate update) {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (update.downloadedFile == null || !Files.exists(update.downloadedFile)) {
+                    Main.LOGGER.warn("Update file not found for {}", update.modId);
+                    return;
+                }
 
-    private void createAndExecuteUpdateScript() {
+                Path targetFile = getTargetPath(update.modId);
+
+                if (!Files.exists(targetFile)) {
+                    Main.LOGGER.warn("Target file not found: {}", targetFile);
+                    return;
+                }
+
+                Main.LOGGER.info("Applying update for {} at shutdown", update.modId);
+
+                // Créer un backup avec .old
+                Path backupFile = targetFile.resolveSibling(targetFile.getFileName() + ".old");
+                try {
+                    Files.copy(targetFile, backupFile, StandardCopyOption.REPLACE_EXISTING);
+                } catch (Exception e) {
+                    Main.LOGGER.warn("Could not create backup: {}", e.getMessage());
+                }
+
+                // STRATÉGIE WYNNTILS : Copier le nouveau fichier par-dessus l'ancien
+                // Au lieu de move/rename, on utilise une copie qui écrase
+                copyFileOverwrite(update.downloadedFile, targetFile);
+
+                // Supprimer le fichier téléchargé
+                try {
+                    Files.delete(update.downloadedFile);
+                } catch (Exception e) {
+                    Main.LOGGER.warn("Could not delete update file: {}", e.getMessage());
+                }
+
+                Main.LOGGER.info("Successfully applied update for {}!", update.modId);
+
+            } catch (Exception e) {
+                Main.LOGGER.error("Failed to apply update for {}: {}", update.modId, e.getMessage());
+            }
+        }, "WE-Update-" + update.modId));
+    }
+
+    /**
+     * Copie un fichier en écrasant la destination
+     * Utilise une approche similaire à Wynntils
+     */
+    private void copyFileOverwrite(Path source, Path destination) throws IOException {
+        // Méthode 1 : Utiliser Files.copy avec REPLACE_EXISTING
         try {
-            UpdateScriptGenerator.createUpdateScript(pendingUpdates, installedMods);
-            UpdateScriptGenerator.executeUpdateScript();
+            Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+            return;
         } catch (Exception e) {
-            Main.LOGGER.error("[Updater] Failed to create/execute update script: {}", e.getMessage());
+            Main.LOGGER.debug("Files.copy failed, trying stream copy: {}", e.getMessage());
+        }
+
+        // Méthode 2 : Copie via streams (comme Wynntils)
+        try (InputStream in = Files.newInputStream(source);
+             OutputStream out = Files.newOutputStream(destination,
+                     StandardOpenOption.CREATE,
+                     StandardOpenOption.TRUNCATE_EXISTING,
+                     StandardOpenOption.WRITE)) {
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+            out.flush();
+        }
+    }
+
+    private Path getUpdateFilePath(String modId) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        File runDir = mc != null ? mc.runDirectory : new File(".");
+        return runDir.toPath()
+                .resolve("config")
+                .resolve("wynncraft-explorer")
+                .resolve("updates")
+                .resolve(modId + "-update.jar");
+    }
+
+    private Path getTargetPath(String modId) {
+        if ("wynncraft-explorer".equals(modId)) {
+            return CryptoUtils.getCurrentJarPath();
+        }
+
+        InstalledMod im = installed.get(modId);
+        if (im != null && im.path != null && Files.exists(im.path)) {
+            return im.path;
+        }
+
+        return Paths.get("mods", modId + ".jar");
+    }
+
+    private void cleanupOldFiles() {
+        try {
+            Path modsDir = Paths.get("mods");
+            if (!Files.exists(modsDir)) return;
+
+            // Supprimer tous les .old
+            Files.walk(modsDir, 1)
+                    .filter(p -> p.toString().endsWith(".old"))
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                            Main.LOGGER.debug("Cleaned up old file: {}", p.getFileName());
+                        } catch (IOException e) {
+                            Main.LOGGER.warn("Could not delete old file: {}", p);
+                        }
+                    });
+
+            // Nettoyer le dossier updates aussi
+            Path updatesDir = Paths.get("config/wynncraft-explorer/updates");
+            if (Files.exists(updatesDir)) {
+                Files.walk(updatesDir, 1)
+                        .filter(Files::isRegularFile)
+                        .forEach(p -> {
+                            try {
+                                // Supprimer les fichiers de plus de 7 jours
+                                if (Files.getLastModifiedTime(p).toMillis() <
+                                        System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000) {
+                                    Files.deleteIfExists(p);
+                                }
+                            } catch (IOException e) {
+                                // Ignorer
+                            }
+                        });
+            }
+
+        } catch (Exception e) {
+            Main.LOGGER.warn("Cleanup failed: {}", e.getMessage());
         }
     }
 
@@ -443,66 +320,132 @@ public final class UpdateManager {
         try {
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc != null && mc.player != null) {
-                mc.execute(() -> {
-                    String priority = update.critical ? "§c[CRITICAL UPDATE]" : "§a[UPDATE AVAILABLE]";
-                    String message = String.format("§7[§6WE§7] %s §f%s §7v%s → §av%s",
-                            priority, update.modId, update.currentVersion, update.newVersion);
+                String tag = update.critical ? "§c[CRITICAL UPDATE]" : "§a[UPDATE]";
+                String msg = String.format("§7[§6WE§7] %s §f%s §7v%s → §av%s §e(will apply on restart)",
+                        tag, update.modId, update.currentVersion, update.newVersion);
+                mc.execute(() -> mc.player.sendMessage(Text.literal(msg), false));
 
-                    mc.player.sendMessage(Text.literal(message), false);
-
-                    if (!update.changelog.isEmpty()) {
-                        mc.player.sendMessage(Text.literal("§7[§6WE§7] §7Changes: §f" + update.changelog), false);
-                    }
-
-                    mc.player.sendMessage(Text.literal("§7[§6WE§7] §eUpdate will be installed on restart"), false);
-                });
+                if (!update.changelog.isEmpty()) {
+                    mc.execute(() -> mc.player.sendMessage(Text.literal("§7Changes: §f" + update.changelog), false));
+                }
             }
+        } catch (Exception ignored) {}
+    }
 
-            // Notifier l'extension si elle est présente
-            try {
-                Class<?> notifClass = Class.forName("com.edgn.dernext.updater.UpdateNotificationInterface");
-                Object instance = notifClass.getMethod("getInstance").invoke(null);
-                notifClass.getMethod("notifyUpdateAvailable", String.class, String.class, String.class, boolean.class, String.class)
-                        .invoke(instance, update.modId, update.currentVersion, update.newVersion, update.critical, update.changelog);
-            } catch (Exception e) {
-                Main.LOGGER.debug("[Updater] Extension notification skipped: {}", e.getMessage());
+    // Méthodes inchangées...
+
+    private void scanInstalled() {
+        installed.clear();
+        String coreVer = Main.VERSION;
+        Path coreJar = CryptoUtils.getCurrentJarPath();
+        String coreHash = CryptoUtils.calculateSecureFileHash(coreJar);
+        installed.put("wynncraft-explorer", new InstalledMod("wynncraft-explorer", coreVer, "core", coreHash, coreJar));
+
+        try {
+            Path mods = Paths.get("mods");
+            if (Files.exists(mods)) {
+                Files.list(mods)
+                        .filter(this::isValidJar)
+                        .forEach(this::scanOne);
             }
-
         } catch (Exception e) {
-            Main.LOGGER.error("[Updater] Failed to notify user: {}", e.getMessage());
+            Main.LOGGER.warn("Scan mods fail: {}", e.getMessage());
         }
     }
 
-    private Path getCurrentJarPath() {
-        return CryptoUtils.getCurrentJarPath();
+    private boolean isValidJar(Path p) {
+        String n = p.getFileName().toString();
+        if (!n.endsWith(".jar")) return false;
+        if (n.endsWith(".old")) return false;
+        if (n.contains("-sources") || n.contains("-dev") || n.contains("-javadoc")) return false;
+        try {
+            if (p.equals(CryptoUtils.getCurrentJarPath())) return false;
+        } catch (Exception ignored) {}
+        return true;
     }
 
-    public static class InstalledMod {
-        final String id, version, type, hash;
-        final Path filePath;
+    private void scanOne(Path jar) {
+        try (JarFile jf = new JarFile(jar.toFile())) {
+            Manifest mf = jf.getManifest();
+            if (mf == null) return;
+            var a = mf.getMainAttributes();
+            String modId = Optional.ofNullable(a.getValue("Mod-Id"))
+                    .orElse(Optional.ofNullable(a.getValue("Implementation-Title"))
+                            .orElse(Optional.ofNullable(a.getValue("Bundle-SymbolicName"))
+                                    .orElse(null)));
+            String ver = Optional.ofNullable(a.getValue("Mod-Version"))
+                    .orElse(Optional.ofNullable(a.getValue("Implementation-Version"))
+                            .orElse(Optional.ofNullable(a.getValue("Bundle-Version")).orElse(null)));
+            if (modId != null && ver != null) {
+                String h = CryptoUtils.calculateSecureFileHash(jar);
+                installed.put(modId, new InstalledMod(modId, ver, "extension", h, jar));
+            }
+        } catch (Exception ignored) {}
+    }
 
-        InstalledMod(String id, String version, String type, String hash, Path filePath) {
-            this.id = id; this.version = version; this.type = type;
-            this.hash = hash; this.filePath = filePath;
+    private boolean fetchServerKey() {
+        try {
+            HttpRequest rq = HttpRequest.newBuilder()
+                    .uri(URI.create(API + "/public-key"))
+                    .header("User-Agent", "WynncraftExplorer/" + Main.VERSION)
+                    .timeout(java.time.Duration.ofSeconds(15))
+                    .GET().build();
+            HttpResponse<String> r = http.send(rq, HttpResponse.BodyHandlers.ofString());
+            if (r.statusCode() != 200) return false;
+
+            JsonObject j = JsonParser.parseString(r.body()).getAsJsonObject();
+            if (!j.has("public_key") || !j.has("test_message") || !j.has("test_signature")) return false;
+
+            PublicKey pk = CryptoUtils.parsePublicKeyFromPem(j.get("public_key").getAsString());
+            if (pk == null) return false;
+
+            String msg = j.get("test_message").getAsString();
+            String sig = j.get("test_signature").getAsString();
+            if (!CryptoUtils.verifySignature(msg, sig, pk)) return false;
+
+            serverKey = pk;
+            return true;
+        } catch (Exception e) {
+            Main.LOGGER.error("Fetch key fail: {}", e.getMessage());
+            return false;
         }
     }
 
-
-    public static class PendingUpdate {
-        final String modId, currentVersion, newVersion, downloadUrl;
-        final String signature, fileHash, changelog;
-        final boolean critical;
-        Path tempFilePath;
-
-        PendingUpdate(String modId, String currentVersion, String newVersion,
-                      String downloadUrl, String signature, String fileHash,
-                      String changelog, boolean critical) {
-            this.modId = modId; this.currentVersion = currentVersion;
-            this.newVersion = newVersion; this.downloadUrl = downloadUrl;
-            this.signature = signature; this.fileHash = fileHash;
-            this.changelog = changelog; this.critical = critical;
+    private JsonObject buildCheckBody() {
+        JsonObject req = new JsonObject();
+        req.addProperty("action", "check_updates");
+        req.addProperty("client_id", CryptoUtils.generateClientId());
+        req.addProperty("timestamp", System.currentTimeMillis());
+        JsonArray arr = new JsonArray();
+        for (InstalledMod m : installed.values()) {
+            JsonObject o = new JsonObject();
+            o.addProperty("mod_id", m.id);
+            o.addProperty("version", m.version);
+            o.addProperty("type", m.type);
+            o.addProperty("hash", m.hash);
+            arr.add(o);
         }
+        req.add("installed_mods", arr);
+        return req;
     }
 
+    public record InstalledMod(String id, String version, String type, String hash, Path path) {}
 
+    public static final class PendingUpdate {
+        public final String modId, currentVersion, newVersion, url, signature, hash, changelog;
+        public final boolean critical;
+        public Path downloadedFile;
+
+        public PendingUpdate(String modId, String currentVersion, String newVersion, String url,
+                             String signature, String hash, String changelog, boolean critical) {
+            this.modId = modId;
+            this.currentVersion = currentVersion;
+            this.newVersion = newVersion;
+            this.url = url;
+            this.signature = signature;
+            this.hash = hash;
+            this.changelog = changelog;
+            this.critical = critical;
+        }
+    }
 }
