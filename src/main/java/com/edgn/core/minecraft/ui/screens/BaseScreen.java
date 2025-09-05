@@ -9,7 +9,7 @@ import net.minecraft.text.Text;
 
 import java.util.Calendar;
 
-@Deprecated(since = "0.3.5.3", forRemoval = true)
+@Deprecated(since = "0.3.5.3")
 public abstract class BaseScreen extends Screen {
 
     protected int headerHeight;

@@ -53,7 +53,7 @@ public final class ModulesScreen extends BaseTemplate {
     private TextFieldItem searchField;
     private GridContainer grid;
 
-    private ButtonItem searchBtn;
+    private ButtonItem clearBtn;
 
     private final ModulesScreenConfig config;
     private ModuleCategory selectedCategory;
@@ -122,22 +122,24 @@ public final class ModulesScreen extends BaseTemplate {
                 .textPulse()
                 .textColor(ColorUtils.NamedColor.WHITE.toInt())
                 .setText(searchQuery)
-                .onEnter(() -> {
+                .onChange((cb) -> {
                             this.searchQuery = searchField.getText();
                             this.rebuildGrid();
                         }
                 );
 
-        searchBtn = new ButtonItem(uiSystem, 0, 0, 70, 28,
-                new TextComponent("Search").color(Theme.PRIMARY_FG))
+        clearBtn = new ButtonItem(uiSystem, 0, 0, 70, 28,
+                new TextComponent("Clear").color(Theme.PRIMARY_FG))
                 .backgroundColor(Theme.PRIMARY)
                 .addClass(StyleKey.ROUNDED_MD, StyleKey.HOVER_BRIGHTEN, StyleKey.FLEX_BASIS_10)
                 .onClick(() -> {
-                    this.searchQuery = searchField.getText();
+                    searchField.setText("");
+                    this.searchQuery = "";
                     rebuildGrid();
+                    uiSystem.getEventManager().setFocus(searchField);
                 });
 
-        searchContainer.addChild(searchField).addChild(searchBtn);
+        searchContainer.addChild(searchField).addChild(clearBtn);
         rightCol.addChild(searchContainer);
 
         grid = new GridContainer(uiSystem, 0, 36, 100, contentHeight - 60)
@@ -192,7 +194,7 @@ public final class ModulesScreen extends BaseTemplate {
         searchField.setHeight(searchH);
         searchField.markConstraintsDirty();
 
-        searchBtn.setHeight(28);
+        clearBtn.setHeight(28);
 
         int gridY = searchH + 8;
         int gridH = Math.max(0, usableH - gridY);
@@ -246,6 +248,9 @@ public final class ModulesScreen extends BaseTemplate {
 
     private void rebuildGrid() {
         if (grid == null) return;
+
+        boolean searchWasFocused = (uiSystem.getEventManager().getFocusedElement() == searchField);
+
         grid.clearContentChildren();
 
         List<AbstractModule> modules = new ArrayList<>(ModuleManager.getInstance().getModules());
@@ -273,6 +278,10 @@ public final class ModulesScreen extends BaseTemplate {
                     .onOpenSettings(() -> openModuleSettings(m));
 
             grid.addChild(card);
+        }
+
+        if (searchWasFocused) {
+            uiSystem.getEventManager().setFocus(searchField);
         }
     }
 

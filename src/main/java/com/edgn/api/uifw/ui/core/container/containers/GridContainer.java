@@ -4,6 +4,7 @@ import com.edgn.api.uifw.ui.core.UIElement;
 import com.edgn.api.uifw.ui.core.item.items.ScrollbarItem;
 import com.edgn.api.uifw.ui.css.UIStyleSystem;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("unused")
@@ -71,6 +72,37 @@ public class GridContainer extends ScrollContainer {
                 colIndex = 0;
             }
         }
+    }
+
+    @Override
+    public ScrollContainer clearContentChildren() {
+        List<UIElement> toRemove = new ArrayList<>();
+
+        for (UIElement c : getChildren()) {
+            if (!(c instanceof ScrollbarItem)) {
+                toRemove.add(c);
+            }
+        }
+
+        for (UIElement element : toRemove) {
+            styleSystem.getEventManager().unregisterElement(element);
+        }
+
+        for (UIElement element : toRemove) {
+            removeChild(element);
+        }
+
+        captured = null;
+        capturedButton = -1;
+
+        markConstraintsDirty();
+        computeContentSize();
+        clampScroll();
+        updateInteractionBounds();
+
+        styleSystem.getEventManager().updateAllConstraints();
+
+        return this;
     }
 
     @Override

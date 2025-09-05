@@ -20,8 +20,8 @@ public class ScrollContainer extends BaseContainer {
     protected boolean verticalScroll = true;
     protected boolean horizontalScroll = false;
 
-    private UIElement captured = null;
-    private int capturedButton = -1;
+    protected UIElement captured = null;
+    protected int capturedButton = -1;
 
     protected int scrollX = 0;
     protected int scrollY = 0;

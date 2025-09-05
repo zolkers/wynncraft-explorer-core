@@ -129,18 +129,27 @@ public class ListContainer<T> extends ScrollContainer {
     }
 
     private void forceCompleteRebuild() {
-        // Nettoyer complètement l'event manager
+        UIElement focusedElement = styleSystem.getEventManager().getFocusedElement();
+
         for (UIElement child : getChildren()) {
             if (child != null) {
                 styleSystem.getEventManager().unregisterElement(child);
             }
         }
 
-        // Vider les containers
         listItems.clear();
-        clearContentChildren();
 
-        // Reconstruire avec les bons indices
+        List<UIElement> toRemove = new ArrayList<>();
+        for (UIElement child : getChildren()) {
+            if (!(child instanceof ScrollbarItem)) {
+                toRemove.add(child);
+            }
+        }
+
+        for (UIElement element : toRemove) {
+            removeChild(element);
+        }
+
         if (itemFactory != null && !items.isEmpty()) {
             for (int i = 0; i < items.size(); i++) {
                 T item = items.get(i);
@@ -160,6 +169,10 @@ public class ListContainer<T> extends ScrollContainer {
 
         markConstraintsDirty();
         updateConstraints();
+
+        if (focusedElement != null) {
+            styleSystem.getEventManager().setFocus(focusedElement);
+        }
     }
 
 

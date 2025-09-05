@@ -118,6 +118,4 @@ public final class Main implements ModInitializer {
 			}
 		}
 	}
-
-
 }
